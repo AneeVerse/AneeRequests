@@ -399,3 +399,29 @@ export const Request = mongoose.models.Request || mongoose.model<IRequest>('Requ
 export const ActivityLogEntry = mongoose.models.ActivityLogEntry || mongoose.model<IActivityLogEntry>('ActivityLogEntry', activityLogSchema)
 export const TeamMember = mongoose.models.TeamMember || mongoose.model<ITeamMember>('TeamMember', teamMemberSchema)
 export const Invoice = mongoose.models.Invoice || mongoose.model<IInvoice>('Invoice', invoiceSchema)
+
+// Profile Schema for Settings > Profile and account
+export interface IProfile extends Document {
+  name: string
+  email: string
+  avatar_url?: string
+  language?: string
+  created_at: Date
+  updated_at: Date
+}
+
+const profileSchema = new Schema<IProfile>({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+  avatar_url: { type: String, required: false, trim: true },
+  language: { type: String, required: false, trim: true, default: 'en' },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+})
+
+profileSchema.pre('save', function(next) {
+  this.updated_at = new Date()
+  next()
+})
+
+export const Profile = mongoose.models.Profile || mongoose.model<IProfile>('Profile', profileSchema)
