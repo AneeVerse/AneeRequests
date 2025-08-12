@@ -52,7 +52,7 @@ export interface ActivityLogEntry {
   action: string
   description?: string
   entity_type?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   created_at: Date
 }
 

@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { RequestService } from '@/lib/services/requestService'
-
-const requestService = new RequestService()
+import connectDB from '@/lib/mongodb'
+import { ActivityLogEntry } from '@/lib/models/schemas'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    const activities = await requestService.getActivityLog(params.id)
-    return NextResponse.json(activities)
+    await connectDB()
+    const activities = await ActivityLogEntry
+      .find({ request_id: id })
+      .sort({ created_at: -1 })
+      .lean()
+
+    const withIds = activities.map(a => ({ ...a, id: a._id?.toString() }))
+    return NextResponse.json(withIds)
   } catch (error) {
     console.error('Error fetching activity log:', error)
     return NextResponse.json({ error: 'Failed to fetch activity log' }, { status: 500 })

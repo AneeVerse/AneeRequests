@@ -38,7 +38,7 @@ interface ActivityLogEntry {
   action: string
   description?: string
   entity_type?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   created_at: string
 }
 
@@ -54,62 +54,45 @@ export default function RequestDetailPage() {
   const [sendingMessage, setSendingMessage] = useState(false)
 
   useEffect(() => {
+    const loadRequestData = async () => {
+      try {
+        setLoading(true)
+        const requestId = params.id as string
+        // Using mocked data as before; API hookup can be added later
+        const mockRequest: Request = {
+          id: requestId,
+          title: "RR",
+          description: "RR",
+          status: "submitted",
+          priority: "medium",
+          client_id: "1",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          client: {
+            id: "1",
+            name: "John Doe",
+            email: "john@acmecorp.com",
+            client_company: { name: "ACME Corp." }
+          },
+          service_catalog_item: { id: "1", title: "Our awesome marketing strategy", description: "Marketing services" }
+        }
+        const mockActivities: ActivityLogEntry[] = [
+          { id: "1", request_id: requestId, action: "request_submitted", description: "Request was submitted", entity_type: "request", created_at: new Date().toISOString() }
+        ]
+        setRequest(mockRequest)
+        setActivities(mockActivities)
+      } catch (err) {
+        console.error('Error loading request:', err)
+        setError('Failed to load request details')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     if (params.id) {
-      loadRequestData()
+      void loadRequestData()
     }
   }, [params.id])
-
-  const loadRequestData = async () => {
-    try {
-      setLoading(true)
-      const requestId = params.id as string
-      
-      // For now, we'll create a mock request since we don't have the full API yet
-      // Later we'll implement the proper API calls
-      const mockRequest: Request = {
-        id: requestId,
-        title: "RR",
-        description: "RR",
-        status: "submitted",
-        priority: "medium",
-        client_id: "1",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        client: {
-          id: "1",
-          name: "John Doe",
-          email: "john@acmecorp.com",
-          client_company: {
-            name: "ACME Corp."
-          }
-        },
-        service_catalog_item: {
-          id: "1",
-          title: "Our awesome marketing strategy",
-          description: "Marketing services"
-        }
-      }
-      
-      const mockActivities: ActivityLogEntry[] = [
-        {
-          id: "1",
-          request_id: requestId,
-          action: "request_submitted",
-          description: "Request was submitted",
-          entity_type: "request",
-          created_at: new Date().toISOString()
-        }
-      ]
-      
-      setRequest(mockRequest)
-      setActivities(mockActivities)
-    } catch (err) {
-      console.error('Error loading request:', err)
-      setError('Failed to load request details')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -147,10 +130,7 @@ export default function RequestDetailPage() {
 
     setSendingMessage(true)
     try {
-      // TODO: Implement API call to send message
-      console.log('Sending message:', message)
-      
-      // For now, just add it to the activities list
+      // Push new activity locally (mock)
       const newActivity: ActivityLogEntry = {
         id: Date.now().toString(),
         request_id: request.id,
@@ -159,7 +139,6 @@ export default function RequestDetailPage() {
         entity_type: 'message',
         created_at: new Date().toISOString()
       }
-      
       setActivities(prev => [newActivity, ...prev])
       setMessage("")
     } catch (err) {

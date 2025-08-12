@@ -12,14 +12,18 @@ export async function GET() {
     console.log('Database connected successfully')
     
     // Test a simple operation
-    const collections = await mongoose.connection.db.listCollections().toArray()
+    const db = mongoose.connection.db
+    if (!db) {
+      throw new Error('Database connection not established')
+    }
+    const collections = await db.listCollections().toArray()
     console.log('Collections found:', collections.length)
     
     return NextResponse.json({ 
       success: true, 
       message: 'MongoDB connection successful (Mongoose)',
       collections: collections.length,
-      dbName: mongoose.connection.db.databaseName,
+      dbName: db.databaseName,
       connectionState: mongoose.connection.readyState
     })
   } catch (error) {

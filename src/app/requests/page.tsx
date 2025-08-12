@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Calendar, Filter, List, LayoutGrid, Plus } from "lucide-react"
+import { Filter, List, LayoutGrid, Plus } from "lucide-react"
 import Link from "next/link"
 
 interface Client {

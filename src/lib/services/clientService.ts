@@ -1,9 +1,9 @@
 import connectDB from '../mongodb'
-import { Client, ClientCompany, IClient, IClientCompany } from '../models/schemas'
+import { Client, ClientCompany } from '../models/schemas'
 
 export class ClientService {
 
-  async getClients(): Promise<any[]> {
+  async getClients(): Promise<Array<ReturnType<typeof mapClientDoc>>> {
     await connectDB()
     
     const clients = await Client
@@ -12,44 +12,34 @@ export class ClientService {
       .sort({ created_at: -1 })
       .lean()
     
-    return clients.map(client => ({
-      ...client,
-      id: client._id.toString(),
-      client_company: client.client_company_id ? {
-        ...client.client_company_id,
-        id: client.client_company_id._id.toString()
-      } : undefined
-    }))
+    return clients.map(mapClientDoc)
   }
 
   async createClient(data: { 
     name: string
     email?: string
     client_company_name?: string 
-  }): Promise<any> {
+  }): Promise<ReturnType<typeof mapClientDoc>> {
     await connectDB()
     
-    let clientCompanyId = undefined
+    let clientCompanyId = undefined as unknown as string | undefined
 
-    // Create company if provided
     if (data.client_company_name?.trim()) {
-      // Check if company already exists
-      let existingCompany = await ClientCompany.findOne({
+      const existingCompany = await ClientCompany.findOne({
         name: data.client_company_name.trim()
       })
 
       if (existingCompany) {
-        clientCompanyId = existingCompany._id
+        clientCompanyId = existingCompany._id.toString()
       } else {
         const newCompany = new ClientCompany({
           name: data.client_company_name.trim()
         })
         await newCompany.save()
-        clientCompanyId = newCompany._id
+        clientCompanyId = newCompany._id.toString()
       }
     }
 
-    // Create client
     const newClient = new Client({
       name: data.name.trim(),
       email: data.email?.trim() || undefined,
@@ -58,23 +48,15 @@ export class ClientService {
 
     await newClient.save()
 
-    // Return client with populated company data
     const clientWithCompany = await Client
       .findById(newClient._id)
       .populate('client_company_id')
       .lean()
 
-    return {
-      ...clientWithCompany,
-      id: clientWithCompany!._id.toString(),
-      client_company: clientWithCompany!.client_company_id ? {
-        ...clientWithCompany!.client_company_id,
-        id: clientWithCompany!.client_company_id._id.toString()
-      } : undefined
-    }
+    return mapClientDoc(clientWithCompany!)
   }
 
-  async getClient(clientId: string): Promise<any | null> {
+  async getClient(clientId: string): Promise<ReturnType<typeof mapClientDoc> | null> {
     await connectDB()
     
     const client = await Client
@@ -84,13 +66,21 @@ export class ClientService {
     
     if (!client) return null
 
-    return {
-      ...client,
-      id: client._id.toString(),
-      client_company: client.client_company_id ? {
-        ...client.client_company_id,
-        id: client.client_company_id._id.toString()
-      } : undefined
-    }
+    return mapClientDoc(client)
+  }
+}
+
+function mapClientDoc(doc: unknown) {
+  const typed = doc as {
+    _id: { toString(): string }
+    client_company_id?: { _id: { toString(): string } } & Record<string, unknown>
+  } & Record<string, unknown>
+  return {
+    ...typed,
+    id: typed._id.toString(),
+    client_company: typed.client_company_id ? {
+      ...typed.client_company_id,
+      id: typed.client_company_id._id.toString()
+    } : undefined
   }
 }

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { Invoice, Client, ServiceCatalogItem } from '@/lib/models/schemas'
+import { Invoice } from '@/lib/models/schemas'
+
+type LineItemInput = {
+  description: string
+  service_catalog_item_id?: string
+  rate: number
+  quantity: number
+}
 
 export async function GET() {
   try {
@@ -14,10 +21,10 @@ export async function GET() {
 
     const invoicesWithIds = invoices.map(invoice => ({
       ...invoice,
-      id: invoice._id.toString(),
+      id: (invoice._id as { toString(): string }).toString(),
       client: invoice.client_id ? {
         ...invoice.client_id,
-        id: invoice.client_id._id.toString()
+        id: (invoice.client_id._id as { toString(): string }).toString()
       } : undefined
     }))
 
@@ -43,6 +50,16 @@ export async function POST(request: NextRequest) {
       line_items,
       tax_amount,
       notes 
+    }: {
+      client_id: string
+      date_of_issue?: string
+      due_date?: string
+      payment_method?: string
+      payment_reference?: string
+      status?: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled'
+      line_items: LineItemInput[]
+      tax_amount?: number
+      notes?: string
     } = body
 
     if (!client_id || !line_items || line_items.length === 0) {
@@ -52,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate and calculate line totals
-    const processedLineItems = line_items.map((item: any) => ({
+    const processedLineItems = line_items.map((item) => ({
       ...item,
       line_total: item.rate * item.quantity
     }))
@@ -74,14 +91,17 @@ export async function POST(request: NextRequest) {
     const invoiceWithData = await Invoice
       .findById(newInvoice._id)
       .populate('client_id')
-      .lean()
+      .lean() as unknown as {
+        _id: { toString(): string }
+        client_id?: { _id: { toString(): string } } & Record<string, unknown>
+      } & Record<string, unknown>
 
     return NextResponse.json({
       ...invoiceWithData,
-      id: invoiceWithData!._id.toString(),
-      client: invoiceWithData!.client_id ? {
-        ...invoiceWithData!.client_id,
-        id: invoiceWithData!.client_id._id.toString()
+      id: invoiceWithData._id.toString(),
+      client: invoiceWithData.client_id ? {
+        ...invoiceWithData.client_id,
+        id: invoiceWithData.client_id._id.toString()
       } : undefined
     }, { status: 201 })
   } catch (error) {

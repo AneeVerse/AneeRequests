@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { ServiceCatalogItem } from '@/lib/models/schemas'
 
@@ -31,7 +31,7 @@ export async function GET() {
 
     const itemsWithIds = items.map(item => ({
       ...item,
-      id: item._id.toString()
+      id: (item._id as { toString(): string }).toString()
     }))
 
     return NextResponse.json(itemsWithIds)

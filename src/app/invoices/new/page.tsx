@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronDown, Plus, Trash2, User } from "lucide-react"
+import { ChevronDown, Plus, Trash2 } from "lucide-react"
 
 interface Client {
   id: string
@@ -38,6 +38,7 @@ export default function CreateInvoicePage() {
   // Invoice form data
   const [selectedClient, setSelectedClient] = useState("")
   const [dateOfIssue, setDateOfIssue] = useState(new Date().toISOString().split('T')[0])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dueDate, setDueDate] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
   const [paymentReference, setPaymentReference] = useState("")
@@ -89,14 +90,18 @@ export default function CreateInvoicePage() {
     setLineItems([...lineItems, newItem])
   }
 
-  const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
+  const updateLineItem = (
+    id: string,
+    field: keyof LineItem,
+    value: string | number
+  ) => {
     setLineItems(lineItems.map(item => {
       if (item.id === id) {
-        const updatedItem = { ...item, [field]: value }
+        const updatedItem = { ...item, [field]: value } as LineItem
         
         // Recalculate line total
         if (field === 'rate' || field === 'quantity') {
-          updatedItem.line_total = updatedItem.rate * updatedItem.quantity
+          updatedItem.line_total = Number(updatedItem.rate) * Number(updatedItem.quantity)
         }
         
         return updatedItem

@@ -7,11 +7,13 @@ import { Profile } from '@/lib/models/schemas'
 export async function GET() {
   try {
     await connectDB()
-    let profile = await Profile.findOne({}).lean()
+    let profile = await Profile.findOne({}).lean() as unknown as {
+      _id: { toString(): string }
+    } & Record<string, unknown> | null
     if (!profile) {
       profile = (await new Profile({ name: 'anees', email: '4d.x.art@gmail.com' }).save()).toObject()
     }
-    return NextResponse.json({ ...profile, id: profile._id?.toString() })
+    return NextResponse.json({ ...profile, id: profile!._id.toString() })
   } catch (error) {
     console.error('Error fetching profile:', error)
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
@@ -36,7 +38,7 @@ export async function PUT(request: NextRequest) {
 
     await profile.save()
     const obj = profile.toObject()
-    return NextResponse.json({ ...obj, id: obj._id?.toString() })
+    return NextResponse.json({ ...obj, id: obj._id.toString() })
   } catch (error) {
     console.error('Error updating profile:', error)
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })

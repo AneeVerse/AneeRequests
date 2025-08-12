@@ -8,9 +8,7 @@ import {
   UserCheck,
   Receipt,
   Settings,
-  HelpCircle,
-  ChevronDown,
-  LayoutGrid
+  ChevronDown
 } from "lucide-react"
 
 const sidebarItems = [
@@ -19,7 +17,7 @@ const sidebarItems = [
   { name: "Clients", href: "/clients", icon: Users },
   { name: "Team", href: "/team", icon: UserCheck },
   { name: "Invoices", href: "/invoices", icon: Receipt },
-  { name: "Reports", href: "/reports", icon: LayoutGrid },
+  { name: "Reports", href: "/reports", icon: LayoutDashboard },
   { name: "Settings", href: "/settings/profile-and-account", icon: Settings },
 ]
 

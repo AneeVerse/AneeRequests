@@ -9,16 +9,16 @@ interface Aggregates {
 }
 
 export default function RequestsReportPage() {
-  const [data, setData] = useState<Aggregates | null>(null)
+  const [report, setReport] = useState<Aggregates | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { void load() }, [])
 
   const load = async () => {
     try {
       setLoading(true)
       const res = await fetch('/api/reports/requests')
-      if (res.ok) setData(await res.json())
+      if (res.ok) setReport(await res.json())
     } finally { setLoading(false) }
   }
 
@@ -33,17 +33,16 @@ export default function RequestsReportPage() {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Line Chart Placeholder */}
         <div className="h-64 border rounded flex items-center justify-center text-gray-400">
-          {loading ? 'Loading chart...' : 'Requests over time (chart placeholder)'}
+          {loading ? 'Loading chart...' : `Requests over time (${report?.dailyCounts.length ?? 0} points)`}
         </div>
         
         <div className="grid grid-cols-2 gap-6">
           <div className="h-80 border rounded flex items-center justify-center text-gray-400">
-            {loading ? 'Loading...' : 'Requests per status (donut placeholder)'}
+            {loading ? 'Loading...' : `Requests per status (${report?.byStatus.length ?? 0})`}
           </div>
           <div className="h-80 border rounded flex items-center justify-center text-gray-400">
-            {loading ? 'Loading...' : 'Requests per service (donut placeholder)'}
+            {loading ? 'Loading...' : `Requests per service (${report?.byService.length ?? 0})`}
           </div>
         </div>
       </div>

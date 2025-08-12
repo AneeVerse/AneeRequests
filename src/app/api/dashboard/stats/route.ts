@@ -28,14 +28,14 @@ export async function GET() {
 
     const requestsWithIds = recentRequests.map(request => ({
       ...request,
-      id: request._id.toString(),
+      id: (request._id as { toString(): string }).toString(),
       client: request.client_id ? {
         ...request.client_id,
-        id: request.client_id._id.toString()
+        id: (request.client_id._id as { toString(): string }).toString()
       } : undefined,
       service_catalog_item: request.service_catalog_item_id ? {
         ...request.service_catalog_item_id,
-        id: request.service_catalog_item_id._id.toString()
+        id: (request.service_catalog_item_id._id as { toString(): string }).toString()
       } : undefined
     }))
 

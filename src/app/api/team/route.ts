@@ -13,7 +13,7 @@ export async function GET() {
 
     const teamMembersWithIds = teamMembers.map(member => ({
       ...member,
-      id: member._id.toString()
+      id: (member._id as { toString(): string }).toString()
     }))
 
     return NextResponse.json(teamMembersWithIds)
