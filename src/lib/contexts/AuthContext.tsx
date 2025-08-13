@@ -12,6 +12,9 @@ interface AuthContextType extends AuthState {
   changePassword: (data: ChangePasswordData) => Promise<{ success: boolean; message: string }>
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; message: string }>
   requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>
+  checkEmail: (email: string) => Promise<{ success: boolean; exists: boolean; message: string; user?: { id: string; email: string; name: string; role: string } }>
+  resetPasswordDirect: (email: string, oldPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
+  adminResetPassword: (email: string, newPassword: string) => Promise<{ success: boolean; message: string }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -280,6 +283,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const checkEmail = async (email: string): Promise<{ success: boolean; exists: boolean; message: string; user?: { id: string; email: string; name: string; role: string } }> => {
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to check email')
+      }
+
+      return { 
+        success: true, 
+        exists: data.exists, 
+        message: data.message,
+        user: data.user
+      }
+      
+    } catch (error) {
+      return { 
+        success: false, 
+        exists: false, 
+        message: error instanceof Error ? error.message : 'Failed to check email' 
+      }
+    }
+  }
+
+  const resetPasswordDirect = async (email: string, oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('/api/auth/reset-password-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, oldPassword, newPassword }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Password reset failed')
+      }
+
+      return { success: true, message: data.message }
+      
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Password reset failed' }
+    }
+  }
+
+  const adminResetPassword = async (email: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('/api/auth/admin-reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, newPassword }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Admin password reset failed')
+      }
+
+      return { success: true, message: data.message }
+      
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Admin password reset failed' }
+    }
+  }
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -288,7 +369,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     stopImpersonation,
     changePassword,
     register,
-    requestPasswordReset
+    requestPasswordReset,
+    checkEmail,
+    resetPasswordDirect,
+    adminResetPassword
   }
 
   return (

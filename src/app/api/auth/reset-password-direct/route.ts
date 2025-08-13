@@ -5,18 +5,11 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, oldPassword, newPassword, confirmPassword } = await request.json()
+    const { email, oldPassword, newPassword } = await request.json()
 
-    // Validation
-    if (!email || !oldPassword || !newPassword || !confirmPassword) {
+    if (!email || !oldPassword || !newPassword) {
       return NextResponse.json({ 
-        error: 'All fields are required' 
-      }, { status: 400 })
-    }
-
-    if (newPassword !== confirmPassword) {
-      return NextResponse.json({ 
-        error: 'New passwords do not match' 
+        error: 'Email, old password, and new password are required' 
       }, { status: 400 })
     }
 
@@ -30,15 +23,16 @@ export async function POST(request: NextRequest) {
 
     // Find user by email
     const user = await User.findOne({ email })
+    
     if (!user) {
       return NextResponse.json({ 
-        error: 'No account found with this email address' 
+        error: 'User not found' 
       }, { status: 404 })
     }
 
     // Verify old password
-    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password)
-    if (!isOldPasswordValid) {
+    const isValidOldPassword = await bcrypt.compare(oldPassword, user.password)
+    if (!isValidOldPassword) {
       return NextResponse.json({ 
         error: 'Current password is incorrect' 
       }, { status: 400 })
@@ -53,6 +47,7 @@ export async function POST(request: NextRequest) {
     await user.save()
 
     return NextResponse.json({
+      success: true,
       message: 'Password updated successfully. You can now log in with your new password.'
     })
 

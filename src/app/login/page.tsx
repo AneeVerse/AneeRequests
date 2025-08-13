@@ -6,25 +6,26 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, isLoading } = useAuth()
+  const { login, isLoading, checkEmail, resetPasswordDirect } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
-  
-  // Password reset states
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("")
-  const [emailExists, setEmailExists] = useState(false)
-  const [checkingEmail, setCheckingEmail] = useState(false)
-  const [resetMessage, setResetMessage] = useState("")
-  const [resettingPassword, setResettingPassword] = useState(false)
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState("")
   
-  // Password reset form states
-  const [oldPassword, setOldPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
+  // New password reset states
+  const [showPasswordResetForm, setShowPasswordResetForm] = useState(false)
+  const [resetUser, setResetUser] = useState<{ id: string; email: string; name: string; role: string } | null>(null)
+  const [resetFormData, setResetFormData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  })
   const [showOldPassword, setShowOldPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
   
   const [formData, setFormData] = useState({
     email: "",
@@ -56,110 +57,78 @@ export default function LoginPage() {
     }))
   }
 
-  const handleCheckEmail = async (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    setCheckingEmail(true)
-    setResetMessage("")
+    setForgotPasswordLoading(true)
+    setForgotPasswordMessage("")
 
     try {
-      const response = await fetch('/api/auth/check-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: forgotPasswordEmail }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        if (data.exists) {
-          setEmailExists(true)
-          setResetMessage(data.message)
-        } else {
-          setResetMessage(data.message)
-        }
+      const result = await checkEmail(forgotPasswordEmail)
+      
+      if (result.success && result.exists && result.user) {
+        setResetUser(result.user)
+        setShowPasswordResetForm(true)
+        setShowForgotPassword(false)
       } else {
-        setResetMessage(data.error || 'An error occurred')
+        setForgotPasswordMessage(result.message)
       }
     } catch {
-      setResetMessage("An error occurred. Please try again.")
+      setForgotPasswordMessage("An error occurred. Please try again.")
     } finally {
-      setCheckingEmail(false)
+      setForgotPasswordLoading(false)
     }
   }
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    setResettingPassword(true)
-    setResetMessage("")
+    setResetLoading(true)
+    setForgotPasswordMessage("")
 
     // Validation
-    if (!oldPassword || !newPassword || !confirmPassword) {
-      setResetMessage("All fields are required")
-      setResettingPassword(false)
+    if (!resetFormData.oldPassword || !resetFormData.newPassword || !resetFormData.confirmPassword) {
+      setForgotPasswordMessage("Please fill in all fields")
+      setResetLoading(false)
       return
     }
 
-    if (newPassword !== confirmPassword) {
-      setResetMessage("New passwords do not match")
-      setResettingPassword(false)
+    if (resetFormData.newPassword.length < 6) {
+      setForgotPasswordMessage("New password must be at least 6 characters long")
+      setResetLoading(false)
       return
     }
 
-    if (newPassword.length < 6) {
-      setResetMessage("New password must be at least 6 characters long")
-      setResettingPassword(false)
+    if (resetFormData.newPassword !== resetFormData.confirmPassword) {
+      setForgotPasswordMessage("New passwords do not match")
+      setResetLoading(false)
       return
     }
 
     try {
-      const response = await fetch('/api/auth/reset-password-with-old', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: forgotPasswordEmail,
-          oldPassword,
-          newPassword,
-          confirmPassword
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setResetMessage(data.message)
-        // Reset form
-        setOldPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
-        setEmailExists(false)
-        setForgotPasswordEmail("")
-        // Close reset form after 3 seconds
-        setTimeout(() => {
-          setShowForgotPassword(false)
-          setResetMessage("")
-        }, 3000)
-      } else {
-        setResetMessage(data.error || 'Failed to reset password')
+      if (!resetUser) {
+        setForgotPasswordMessage("User information not found")
+        setResetLoading(false)
+        return
+      }
+      const result = await resetPasswordDirect(resetUser.email, resetFormData.oldPassword, resetFormData.newPassword)
+      setForgotPasswordMessage(result.message)
+      if (result.success) {
+        // Reset form and go back to login
+        setResetFormData({ oldPassword: "", newPassword: "", confirmPassword: "" })
+        setShowPasswordResetForm(false)
+        setResetUser(null)
       }
     } catch {
-      setResetMessage("An error occurred. Please try again.")
+      setForgotPasswordMessage("An error occurred. Please try again.")
     } finally {
-      setResettingPassword(false)
+      setResetLoading(false)
     }
   }
 
-  const resetForgotPasswordForm = () => {
-    setShowForgotPassword(false)
-    setForgotPasswordEmail("")
-    setEmailExists(false)
-    setResetMessage("")
-    setOldPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
+  const handleResetInputChange = (field: string, value: string) => {
+    setResetFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   return (
@@ -179,160 +148,192 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {showForgotPassword ? (
+        {showPasswordResetForm ? (
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Reset Password</h3>
-            
-            {resetMessage && (
+            <p className="text-sm text-gray-600 mb-4">
+              Reset password for: <strong>{resetUser?.email}</strong>
+            </p>
+            {forgotPasswordMessage && (
               <div className={`mb-4 p-3 rounded-md text-sm ${
-                resetMessage.includes('successfully') || resetMessage.includes('found')
+                forgotPasswordMessage.includes('successfully') 
                   ? 'bg-green-50 text-green-700 border border-green-200' 
                   : 'bg-red-50 text-red-700 border border-red-200'
               }`}>
-                {resetMessage}
+                {forgotPasswordMessage}
               </div>
             )}
-
-            {!emailExists ? (
-              // Step 1: Enter email to check if it exists
-              <form onSubmit={handleCheckEmail} className="space-y-4">
-                <div>
-                  <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700">
-                    Email address
-                  </label>
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              {/* Old Password */}
+              <div>
+                <label htmlFor="oldPassword" className="block text-sm font-medium text-gray-700">
+                  Current Password
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
-                    id="resetEmail"
-                    type="email"
+                    id="oldPassword"
+                    type={showOldPassword ? "text" : "password"}
                     required
-                    value={forgotPasswordEmail}
-                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                    placeholder="Enter your email"
+                    value={resetFormData.oldPassword}
+                    onChange={(e) => handleResetInputChange('oldPassword', e.target.value)}
+                    className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                    placeholder="Enter your current password"
                   />
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    type="submit"
-                    disabled={checkingEmail}
-                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-                  >
-                    {checkingEmail ? "Checking..." : "Check Email"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetForgotPasswordForm}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              // Step 2: Enter old password and new password
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div>
-                  <label htmlFor="oldPassword" className="block text-sm font-medium text-gray-700">
-                    Current Password
-                  </label>
-                  <div className="mt-1 relative">
-                    <input
-                      id="oldPassword"
-                      type={showOldPassword ? "text" : "password"}
-                      required
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                      placeholder="Enter your current password"
-                    />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <button
                       type="button"
                       onClick={() => setShowOldPassword(!showOldPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       {showOldPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
+                        <EyeOff className="h-5 w-5" />
                       ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
+                        <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                    New Password
-                  </label>
-                  <div className="mt-1 relative">
-                    <input
-                      id="newPassword"
-                      type={showNewPassword ? "text" : "password"}
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                      placeholder="Enter new password"
-                    />
+              {/* New Password */}
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="newPassword"
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={resetFormData.newPassword}
+                    onChange={(e) => handleResetInputChange('newPassword', e.target.value)}
+                    className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                    placeholder="Enter new password"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       {showNewPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
+                        <EyeOff className="h-5 w-5" />
                       ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
+                        <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
                 </div>
+                <p className="mt-1 text-sm text-gray-500">Minimum 6 characters</p>
+              </div>
 
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                    Confirm New Password
-                  </label>
-                  <div className="mt-1 relative">
-                    <input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                      placeholder="Confirm new password"
-                    />
+              {/* Confirm Password */}
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirm New Password
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={resetFormData.confirmPassword}
+                    onChange={(e) => handleResetInputChange('confirmPassword', e.target.value)}
+                    className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                    placeholder="Confirm new password"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
+                        <EyeOff className="h-5 w-5" />
                       ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
+                        <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex space-x-3">
-                  <button
-                    type="submit"
-                    disabled={resettingPassword}
-                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-                  >
-                    {resettingPassword ? "Updating..." : "Update Password"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetForgotPasswordForm}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                >
+                  {resetLoading ? "Updating..." : "Update Password"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordResetForm(false)
+                    setResetUser(null)
+                    setResetFormData({ oldPassword: "", newPassword: "", confirmPassword: "" })
+                    setForgotPasswordMessage("")
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : showForgotPassword ? (
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Reset Password</h3>
+            {forgotPasswordMessage && (
+              <div className={`mb-4 p-3 rounded-md text-sm ${
+                forgotPasswordMessage.includes('sent') 
+                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {forgotPasswordMessage}
+              </div>
             )}
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <input
+                  id="resetEmail"
+                  type="email"
+                  required
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  type="submit"
+                  disabled={forgotPasswordLoading}
+                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                >
+                  {forgotPasswordLoading ? "Sending..." : "Reset Password"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         ) : (
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">

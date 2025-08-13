@@ -26,7 +26,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       exists: true,
-      message: 'Email found. Please enter your current password to reset.'
+      message: 'Email found. Please enter your current password to reset.',
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
     })
 
   } catch (error) {
