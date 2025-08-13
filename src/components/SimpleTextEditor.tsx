@@ -25,7 +25,6 @@ export default function SimpleTextEditor({ onSend, placeholder = "Type your mess
     const textarea = textareaRef.current
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
-    const selectedText = message.substring(start, end)
     
     const newText = message.substring(0, start) + text + message.substring(end)
     setMessage(newText)
@@ -43,27 +42,26 @@ export default function SimpleTextEditor({ onSend, placeholder = "Type your mess
     const textarea = textareaRef.current
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
-    const selectedText = message.substring(start, end)
     
     let formattedText = ''
     switch (format) {
       case 'bold':
-        formattedText = `**${selectedText}**`
+        formattedText = `**${message.substring(start, end)}**`
         break
       case 'italic':
-        formattedText = `*${selectedText}*`
+        formattedText = `*${message.substring(start, end)}*`
         break
       case 'underline':
-        formattedText = `__${selectedText}__`
+        formattedText = `__${message.substring(start, end)}__`
         break
       case 'bullet':
-        formattedText = `• ${selectedText}`
+        formattedText = `• ${message.substring(start, end)}`
         break
       case 'numbered':
-        formattedText = `1. ${selectedText}`
+        formattedText = `1. ${message.substring(start, end)}`
         break
       default:
-        formattedText = selectedText
+        formattedText = message.substring(start, end)
     }
     
     const newText = message.substring(0, start) + formattedText + message.substring(end)

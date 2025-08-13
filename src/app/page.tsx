@@ -1,9 +1,9 @@
 "use client"
-import { useState, useEffect } from "react"
-import { Calendar, Filter, List, LayoutGrid, ChevronDown } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/lib/contexts/AuthContext"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { Calendar, ChevronDown } from "lucide-react"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import Link from "next/link"
 
 interface DashboardStats {
   revenue: number
@@ -16,24 +16,12 @@ interface DashboardStats {
 interface Request {
   id: string
   title: string
-  description: string
   status: string
   priority: string
-  client_id: string
-  created_at: string
-  updated_at: string
-  due_date?: string
-  client?: {
-    id: string
+  client: {
     name: string
-    client_company?: {
-      name: string
-    }
   }
-  service_catalog_item?: {
-    id: string
-    title: string
-  }
+  created_at: string
 }
 
 export default function DashboardPage() {
@@ -50,19 +38,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login')
-      return
-    }
-    
-    if (isAuthenticated) {
-      loadDashboardData()
-    }
-  }, [isAuthenticated, isLoading, router])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -104,7 +80,13 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.role])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadDashboardData()
+    }
+  }, [isAuthenticated, isLoading, router, loadDashboardData])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -196,7 +178,7 @@ export default function DashboardPage() {
         {/* Chart Area */}
         <div className="flex items-center justify-center py-16 mb-8">
           <div className="text-center">
-            <LayoutGrid size={48} className="mx-auto mb-4 text-gray-300" />
+            <div className="w-12 h-12 bg-gray-300 rounded-lg mx-auto mb-4" />
             <div className="text-sm font-medium text-gray-500">No revenue for the selected period</div>
           </div>
         </div>
@@ -217,15 +199,8 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
-              <Filter size={16} />
               Filters
               <ChevronDown size={14} />
-            </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <LayoutGrid size={16} />
-            </button>
-            <button className="p-2 text-gray-700 bg-gray-100 rounded">
-              <List size={16} />
             </button>
           </div>
         </div>
@@ -303,12 +278,12 @@ export default function DashboardPage() {
                 <div className="col-span-3">
                   <div className="font-medium text-gray-900">{request.title}</div>
                   <div className="text-gray-500 text-xs mt-1">
-                    {request.service_catalog_item?.title || request.description?.substring(0, 50) + '...' || 'No description'}
+                    No description
                   </div>
                 </div>
                 <div className="col-span-2">
                   <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
-                  <div className="text-gray-500 text-xs">{request.client?.client_company?.name || 'Individual'}</div>
+                  <div className="text-gray-500 text-xs">Individual</div>
                 </div>
                 <div className="col-span-1">
                   <span className={`text-sm font-medium capitalize ${getStatusColor(request.status)}`}>
@@ -328,11 +303,11 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="col-span-1 text-gray-500">
-                  {formatDate(request.updated_at)}
+                  {formatDate(request.created_at)}
                 </div>
                 <div className="col-span-1">
                   <div className="flex items-center gap-1 text-gray-500">
-                    <span>{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
+                    <span>Due Date</span>
                     <ChevronDown size={12} />
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Filter, List, LayoutGrid, Plus } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
@@ -30,45 +30,31 @@ interface Request {
 export default function RequestsPage() {
   const { user } = useAuth()
   const [requests, setRequests] = useState<Request[]>([])
-  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
+      const response = await fetch('/api/requests')
       
-      // Load requests - filter by client if user is a client
-      const requestsUrl = user?.role === 'client' 
-        ? `/api/requests?client_id=${(user as any)?.clientId || user.id}`
-        : '/api/requests'
-      
-      const requestsResponse = await fetch(requestsUrl)
-      
-      if (requestsResponse.ok) {
-        const requestsData = await requestsResponse.json()
-        setRequests(requestsData)
+      if (!response.ok) {
+        throw new Error('Failed to fetch requests')
       }
       
-      // Only load clients if user is admin
-      if (user?.role === 'admin') {
-        const clientsResponse = await fetch('/api/clients')
-        if (clientsResponse.ok) {
-          const clientsData = await clientsResponse.json()
-          setClients(clientsData)
-        }
-      }
+      const data = await response.json()
+      setRequests(data)
     } catch (err) {
-      console.error('Error loading data:', err)
-      setError('Failed to load data')
+      console.error('Error loading requests:', err)
+      setError('Failed to load requests')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -201,7 +187,7 @@ export default function RequestsPage() {
         )}
 
         {/* Empty State - Admin with no clients */}
-        {!loading && !error && isAdmin && clients.length === 0 && (
+        {/* {!loading && !error && isAdmin && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="text-gray-500 mb-4">No requests found</div>
@@ -215,7 +201,7 @@ export default function RequestsPage() {
               </Link>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Empty State - No Requests */}
         {!loading && !error && requests.length === 0 && (

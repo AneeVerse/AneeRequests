@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronDown } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
@@ -32,37 +32,28 @@ export default function CreateRequestPage() {
   
   const [clients, setClients] = useState<Client[]>([])
 
-  useEffect(() => {
-    loadInitialData()
-  }, [])
-
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       setLoading(true)
+      const response = await fetch('/api/clients')
       
-      // If user is a client, they can only create requests for themselves
-      if (user?.role === 'client') {
-        const clientData = {
-          id: (user as any)?.clientId || user.id,
-          name: user.name,
-          email: user.email,
-          client_company: { name: (user as any)?.clientCompany || 'Individual' }
-        }
-        setClients([clientData])
-        setSelectedClient(clientData.id)
-        setStep(2) // Skip client selection for clients
-      } else {
-        // Admin can see all clients
-        const clientsData = await fetch('/api/clients').then(res => res.json())
-        setClients(clientsData)
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients')
       }
+      
+      const data = await response.json()
+      setClients(data)
     } catch (err) {
-      console.error('Error loading data:', err)
-      setError('Failed to load data')
+      console.error('Error loading clients:', err)
+      setError('Failed to load clients')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadInitialData()
+  }, [loadInitialData])
 
   const handleClientSelect = (clientId: string) => {
     setSelectedClient(clientId)

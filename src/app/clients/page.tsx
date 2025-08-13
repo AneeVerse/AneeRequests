@@ -620,7 +620,7 @@ export default function ClientsPage() {
              {/* Modal Body */}
              <div className="p-6">
                <p className="text-gray-700 mb-6">
-                 Are you sure you want to delete client "{clientToDelete.name}"? This action cannot be undone and will permanently remove the client and all associated data.
+                 Are you sure you want to delete client &quot;{clientToDelete.name}&quot;? This action cannot be undone and will permanently remove the client and all associated data.
                </p>
                
                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">

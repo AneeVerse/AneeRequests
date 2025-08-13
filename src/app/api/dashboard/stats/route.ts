@@ -15,13 +15,12 @@ export async function GET() {
     ])
 
     // Calculate revenue from paid invoices
-    const revenue = paidInvoices.reduce((sum, invoice) => sum + invoice.total, 0)
+    const revenue = paidInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0)
 
     // Get recent requests for the table
     const recentRequests = await Request
       .find({})
       .populate('client_id')
-      .populate('service_catalog_item_id')
       .sort({ created_at: -1 })
       .limit(10)
       .lean()
@@ -32,10 +31,6 @@ export async function GET() {
       client: request.client_id ? {
         ...request.client_id,
         id: (request.client_id._id as { toString(): string }).toString()
-      } : undefined,
-      service_catalog_item: request.service_catalog_item_id ? {
-        ...request.service_catalog_item_id,
-        id: (request.service_catalog_item_id._id as { toString(): string }).toString()
       } : undefined
     }))
 

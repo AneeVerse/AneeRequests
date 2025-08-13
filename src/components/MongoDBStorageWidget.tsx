@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from 'react'
-import { Database, HardDrive, Users, FileText, Activity, HardDriveIcon } from 'lucide-react'
+import { Database, HardDrive, Users, FileText, Activity } from 'lucide-react'
 
 interface StorageStats {
   totalSize: number

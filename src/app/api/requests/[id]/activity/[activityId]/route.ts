@@ -4,14 +4,15 @@ import { ActivityLogEntry } from '@/lib/models/schemas'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; activityId: string } }
+  { params }: { params: Promise<{ id: string; activityId: string }> }
 ) {
   try {
     await connectDB()
+    const { id, activityId } = await params
     
     const result = await ActivityLogEntry.deleteOne({
-      _id: params.activityId,
-      request_id: params.id
+      _id: activityId,
+      request_id: id
     })
     
     if (result.deletedCount === 0) {

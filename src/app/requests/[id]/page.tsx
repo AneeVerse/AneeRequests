@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
-import { ChevronDown, User, FileText, MessageCircle, Trash2, MoreVertical } from "lucide-react"
+import { ChevronDown, User, FileText, Trash2 } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import SimpleTextEditor from "@/components/SimpleTextEditor"
 
@@ -33,7 +33,11 @@ interface ActivityLogEntry {
   action: string
   description?: string
   entity_type?: string
-  metadata?: Record<string, unknown>
+  metadata?: {
+    user_name?: string
+    user_role?: string
+    user_id?: string
+  }
   created_at: string
   user_id?: string
   user_name?: string
@@ -273,10 +277,8 @@ export default function RequestDetailPage() {
   // Client can send messages if they own the request OR if they're impersonating
   const canSendMessage = isAdmin || (
     isClient && (
-      request?.client_id === (user as any)?.clientId || 
       request?.client_id === user?.id ||
-      user?.id?.startsWith('impersonated-') || // Allow impersonated users
-      ((user as any)?.clientId && request?.client_id === (user as any)?.clientId) // Direct client ID match
+      user?.id?.startsWith('impersonated-') // Allow impersonated users
     )
   )
 
@@ -614,7 +616,7 @@ export default function RequestDetailPage() {
                   </svg>
                   <div>
                     <p className="text-sm font-medium text-red-800">Warning</p>
-                    <p className="text-sm text-red-700 mt-1">This will delete the request "{request?.title}" and all its activity history.</p>
+                    <p className="text-sm text-red-700 mt-1">This will delete the request &quot;{request?.title}&quot; and all its activity history.</p>
                   </div>
                 </div>
               </div>

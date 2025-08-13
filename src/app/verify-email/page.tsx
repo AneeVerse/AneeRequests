@@ -1,27 +1,26 @@
 "use client"
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 export default function VerifyEmailPage() {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [loading, setLoading] = useState(true)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const searchParams = useSearchParams()
   const router = useRouter()
-  const token = searchParams.get('token')
 
-  useEffect(() => {
-    if (!token) {
-      setStatus('error')
-      setMessage('Invalid verification link')
-      return
-    }
-
-    verifyEmail()
-  }, [token])
-
-  const verifyEmail = async () => {
+  const verifyEmail = useCallback(async () => {
     try {
+      setLoading(true)
+      const urlParams = new URLSearchParams(window.location.search)
+      const token = urlParams.get('token')
+      
+      if (!token) {
+        setError('No verification token found')
+        return
+      }
+
       const response = await fetch('/api/auth/verify-email', {
         method: 'POST',
         headers: {
@@ -33,37 +32,46 @@ export default function VerifyEmailPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setStatus('success')
-        setMessage('Email verified successfully! You can now log in to your account.')
+        setSuccess(true)
+        setMessage(data.message || 'Email verified successfully!')
       } else {
-        setStatus('error')
-        setMessage(data.error || 'Email verification failed')
+        setError(data.error || 'Failed to verify email')
       }
-    } catch {
-      setStatus('error')
-      setMessage('An error occurred during verification')
+    } catch (err) {
+      console.error('Error verifying email:', err)
+      setError('Failed to verify email')
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    verifyEmail()
+  }, [verifyEmail])
 
   const getIcon = () => {
-    switch (status) {
-      case 'loading':
+    switch (loading) {
+      case true:
         return <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-      case 'success':
-        return <CheckCircle className="w-12 h-12 text-green-500" />
-      case 'error':
-        return <XCircle className="w-12 h-12 text-red-500" />
+      case false:
+        if (success) {
+          return <CheckCircle className="w-12 h-12 text-green-500" />
+        } else {
+          return <XCircle className="w-12 h-12 text-red-500" />
+        }
     }
   }
 
   const getTitle = () => {
-    switch (status) {
-      case 'loading':
+    switch (loading) {
+      case true:
         return 'Verifying your email...'
-      case 'success':
-        return 'Email Verified!'
-      case 'error':
-        return 'Verification Failed'
+      case false:
+        if (success) {
+          return 'Email Verified!'
+        } else {
+          return 'Verification Failed'
+        }
     }
   }
 
@@ -81,7 +89,7 @@ export default function VerifyEmailPage() {
         </div>
 
         <div className="mt-8 space-y-4">
-          {status === 'success' && (
+          {success && (
             <button
               onClick={() => router.push('/login')}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
@@ -90,7 +98,7 @@ export default function VerifyEmailPage() {
             </button>
           )}
           
-          {status === 'error' && (
+          {error && (
             <div className="space-y-3">
               <button
                 onClick={() => router.push('/login')}
