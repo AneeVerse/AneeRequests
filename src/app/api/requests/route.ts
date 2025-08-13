@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { Request } from '@/lib/models/schemas'
+import { Request, ActivityLogEntry } from '@/lib/models/schemas'
 
 type PopulatedRequest = {
   _id: unknown
   client_id?: { _id: unknown } | undefined
-  service_catalog_item_id?: { _id: unknown } | undefined
   [key: string]: unknown
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await connectDB()
     
+    const { searchParams } = new URL(request.url)
+    const clientId = searchParams.get('client_id')
+    
+    let query = {}
+    if (clientId) {
+      query = { client_id: clientId }
+    }
+    
     const requests = await Request
-      .find({})
+      .find(query)
       .populate('client_id')
-      .populate('service_catalog_item_id')
       .sort({ created_at: -1 })
       .lean<PopulatedRequest[]>()
 
@@ -26,10 +32,6 @@ export async function GET() {
       client: request.client_id ? {
         ...(request.client_id as Record<string, unknown>),
         id: String((request.client_id as { _id: unknown })._id)
-      } : undefined,
-      service_catalog_item: request.service_catalog_item_id ? {
-        ...(request.service_catalog_item_id as Record<string, unknown>),
-        id: String((request.service_catalog_item_id as { _id: unknown })._id)
       } : undefined
     }))
 
@@ -45,11 +47,10 @@ export async function POST(request: NextRequest) {
     await connectDB()
     
     const body = await request.json()
-    const { title, description, client_id, service_catalog_item_id } = body as {
+    const { title, description, client_id } = body as {
       title: string
       description: string
       client_id: string
-      service_catalog_item_id?: string
     }
 
     if (!title || !description || !client_id) {
@@ -61,16 +62,24 @@ export async function POST(request: NextRequest) {
     const newRequest = new Request({
       title,
       description,
-      client_id,
-      service_catalog_item_id
+      client_id
     })
 
     await newRequest.save()
 
+    // Create initial activity log entry with default org_id
+    await new ActivityLogEntry({
+      request_id: newRequest._id,
+      org_id: 'default', // Add default org_id to satisfy validation
+      action: 'request_submitted',
+      description: 'Request was submitted',
+      entity_type: 'request',
+      created_at: new Date()
+    }).save()
+
     const requestWithData = await Request
       .findById(newRequest._id)
       .populate('client_id')
-      .populate('service_catalog_item_id')
       .lean<PopulatedRequest>()
 
     return NextResponse.json({

@@ -5,7 +5,6 @@ import { Request as RequestModel, ActivityLogEntry } from '@/lib/models/schemas'
 type PopulatedRequestDoc = {
   _id: unknown
   client_id?: { _id: unknown } | undefined
-  service_catalog_item_id?: { _id: unknown } | undefined
   [key: string]: unknown
 }
 
@@ -19,7 +18,6 @@ export async function GET(
     const requestData = await RequestModel
       .findById(id)
       .populate('client_id')
-      .populate('service_catalog_item_id')
       .lean<PopulatedRequestDoc>()
     
     if (!requestData) {
@@ -32,10 +30,6 @@ export async function GET(
       client: requestData.client_id ? {
         ...(requestData.client_id as Record<string, unknown>),
         id: String((requestData.client_id as { _id: unknown })._id)
-      } : undefined,
-      service_catalog_item: requestData.service_catalog_item_id ? {
-        ...(requestData.service_catalog_item_id as Record<string, unknown>),
-        id: String((requestData.service_catalog_item_id as { _id: unknown })._id)
       } : undefined
     }
 
@@ -69,6 +63,7 @@ export async function POST(
 
     const activity = await new ActivityLogEntry({
       request_id: id,
+      org_id: 'default', // Add default org_id
       action,
       description,
       entity_type,
@@ -81,5 +76,30 @@ export async function POST(
   } catch (error) {
     console.error('Error logging activity:', error)
     return NextResponse.json({ error: 'Failed to log activity' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  try {
+    await connectDB()
+    
+    // Delete all activity log entries for this request
+    await ActivityLogEntry.deleteMany({ request_id: id })
+    
+    // Delete the request
+    const deletedRequest = await RequestModel.findByIdAndDelete(id)
+    
+    if (!deletedRequest) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ message: 'Request deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting request:', error)
+    return NextResponse.json({ error: 'Failed to delete request' }, { status: 500 })
   }
 }

@@ -11,7 +11,7 @@ export async function GET(
     await connectDB()
     const activities = await ActivityLogEntry
       .find({ request_id: id })
-      .sort({ created_at: -1 })
+      .sort({ created_at: 1 }) // Sort by oldest first for chat-like experience
       .lean()
 
     const withIds = activities.map(a => ({ ...a, id: a._id?.toString() }))

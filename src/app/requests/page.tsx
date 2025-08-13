@@ -41,19 +41,26 @@ export default function RequestsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [requestsResponse, clientsResponse] = await Promise.all([
-        fetch('/api/requests'),
-        fetch('/api/clients')
-      ])
+      
+      // Load requests - filter by client if user is a client
+      const requestsUrl = user?.role === 'client' 
+        ? `/api/requests?client_id=${(user as any)?.clientId || user.id}`
+        : '/api/requests'
+      
+      const requestsResponse = await fetch(requestsUrl)
       
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json()
         setRequests(requestsData)
       }
       
-      if (clientsResponse.ok) {
-        const clientsData = await clientsResponse.json()
-        setClients(clientsData)
+      // Only load clients if user is admin
+      if (user?.role === 'admin') {
+        const clientsResponse = await fetch('/api/clients')
+        if (clientsResponse.ok) {
+          const clientsData = await clientsResponse.json()
+          setClients(clientsData)
+        }
       }
     } catch (err) {
       console.error('Error loading data:', err)
@@ -92,30 +99,25 @@ export default function RequestsPage() {
     }
   }
 
-  const hasClients = clients.length > 0
+  const isAdmin = user?.role === 'admin'
+  const isClient = user?.role === 'client'
+  const canCreateRequest = isAdmin || isClient
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
         <h1 className="text-xl font-semibold text-gray-900">
-          {user?.role === 'admin' ? 'Requests' : 'My Requests'}
+          {isAdmin ? 'Requests' : 'My Requests'}
         </h1>
-        {user?.role === 'admin' && hasClients ? (
+        {canCreateRequest && (
           <Link
             href="/requests/new"
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
           >
+            <Plus size={16} />
             Create Request
           </Link>
-        ) : (
-          <button 
-            disabled
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 rounded-md cursor-not-allowed"
-            title="Create clients first to enable request creation"
-          >
-            Create Request
-          </button>
         )}
       </div>
 
@@ -160,9 +162,11 @@ export default function RequestsPage() {
           <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
             All
           </button>
-          <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
-            Unassigned
-          </button>
+          {isAdmin && (
+            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+              Unassigned
+            </button>
+          )}
           <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
             Completed
           </button>
@@ -174,9 +178,9 @@ export default function RequestsPage() {
         {/* Table Header */}
         <div className="grid grid-cols-12 gap-4 px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200 bg-gray-50">
           <div className="col-span-4">TITLE</div>
-          <div className="col-span-2">CLIENT</div>
+          {isAdmin && <div className="col-span-2">CLIENT</div>}
           <div className="col-span-1">STATUS</div>
-          <div className="col-span-2">ASSIGNED TO</div>
+          {isAdmin && <div className="col-span-2">ASSIGNED TO</div>}
           <div className="col-span-1">PRIORITY</div>
           <div className="col-span-1">UPDATED</div>
           <div className="col-span-1">DUE DATE</div>
@@ -196,8 +200,8 @@ export default function RequestsPage() {
           </div>
         )}
 
-        {/* Empty State - No Clients */}
-        {!loading && !error && !hasClients && (
+        {/* Empty State - Admin with no clients */}
+        {!loading && !error && isAdmin && clients.length === 0 && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="text-gray-500 mb-4">No requests found</div>
@@ -213,12 +217,14 @@ export default function RequestsPage() {
           </div>
         )}
 
-        {/* Empty State - Has Clients but No Requests */}
-        {!loading && !error && hasClients && requests.length === 0 && (
+        {/* Empty State - No Requests */}
+        {!loading && !error && requests.length === 0 && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="text-gray-500 mb-4">No requests found</div>
-              <p className="text-sm text-gray-400 mb-4">Create your first request to get started</p>
+              <p className="text-sm text-gray-400 mb-4">
+                {isAdmin ? 'Create your first request to get started' : 'You haven\'t created any requests yet'}
+              </p>
               <Link
                 href="/requests/new"
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
@@ -243,21 +249,25 @@ export default function RequestsPage() {
                 {request.description?.substring(0, 50) + '...' || 'No description'}
               </div>
             </div>
-            <div className="col-span-2">
-              <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
-              <div className="text-gray-500 text-xs">{request.client?.client_company?.name || 'Individual'}</div>
-            </div>
+            {isAdmin && (
+              <div className="col-span-2">
+                <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
+                <div className="text-gray-500 text-xs">{request.client?.client_company?.name || 'Individual'}</div>
+              </div>
+            )}
             <div className="col-span-1">
               <span className={`text-sm font-medium capitalize ${getStatusColor(request.status)}`}>
                 {request.status.replace('_', ' ')}
               </span>
             </div>
-            <div className="col-span-2">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                <span className="text-gray-500">None</span>
+            {isAdmin && (
+              <div className="col-span-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                  <span className="text-gray-500">None</span>
+                </div>
               </div>
-            </div>
+            )}
             <div className="col-span-1">
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>

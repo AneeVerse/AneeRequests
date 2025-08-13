@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronDown } from "lucide-react"
+import { useAuth } from "@/lib/contexts/AuthContext"
 
 interface Client {
   id: string
@@ -12,18 +13,12 @@ interface Client {
   }
 }
 
-interface ServiceCatalogItem {
-  id: string
-  title: string
-  description: string
-}
-
 export default function CreateRequestPage() {
   const router = useRouter()
+  const { user } = useAuth()
   
   const [step, setStep] = useState(1)
   const [selectedClient, setSelectedClient] = useState("")
-  const [selectedService, setSelectedService] = useState("")
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -36,7 +31,6 @@ export default function CreateRequestPage() {
   })
   
   const [clients, setClients] = useState<Client[]>([])
-  const [services, setServices] = useState<ServiceCatalogItem[]>([])
 
   useEffect(() => {
     loadInitialData()
@@ -44,20 +38,29 @@ export default function CreateRequestPage() {
 
   const loadInitialData = async () => {
     try {
-      const [clientsData, servicesData] = await Promise.all([
-        fetch('/api/clients').then(res => res.json()),
-        fetch('/api/service-catalog').then(res => res.json())
-      ])
-      setClients(clientsData)
-      setServices(servicesData)
+      setLoading(true)
       
-      // Set default service if available
-      if (servicesData.length > 0) {
-        setSelectedService(servicesData[0].id)
+      // If user is a client, they can only create requests for themselves
+      if (user?.role === 'client') {
+        const clientData = {
+          id: (user as any)?.clientId || user.id,
+          name: user.name,
+          email: user.email,
+          client_company: { name: (user as any)?.clientCompany || 'Individual' }
+        }
+        setClients([clientData])
+        setSelectedClient(clientData.id)
+        setStep(2) // Skip client selection for clients
+      } else {
+        // Admin can see all clients
+        const clientsData = await fetch('/api/clients').then(res => res.json())
+        setClients(clientsData)
       }
     } catch (err) {
       console.error('Error loading data:', err)
       setError('Failed to load data')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -123,8 +126,7 @@ export default function CreateRequestPage() {
         body: JSON.stringify({
           title,
           description,
-          client_id: selectedClient,
-          service_catalog_item_id: selectedService || undefined
+          client_id: selectedClient
         }),
       })
       
@@ -143,6 +145,16 @@ export default function CreateRequestPage() {
 
   const handleExit = () => {
     router.push("/requests")
+  }
+
+  if (loading && step === 1) {
+    return (
+      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-8">
+        <div className="bg-white rounded-lg shadow-xl p-8">
+          <div className="text-center text-gray-500">Loading...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -169,8 +181,8 @@ export default function CreateRequestPage() {
         <div className="bg-white rounded-lg shadow-xl p-8">
           <h1 className="text-2xl font-semibold text-gray-900 text-center mb-8">Create Request</h1>
 
-          {/* Step 1: Client Selection */}
-          {step === 1 && (
+          {/* Step 1: Client Selection (Admin only) */}
+          {step === 1 && user?.role === 'admin' && (
             <div>
               <div className="mb-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Request information</h2>
@@ -365,40 +377,6 @@ export default function CreateRequestPage() {
                     />
                   </div>
                 </div>
-
-                {/* Service Selection */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-900 mb-2">Service</label>
-                  <div className="relative">
-                    <select 
-                      value={selectedService}
-                      onChange={(e) => setSelectedService(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 appearance-none bg-white text-gray-900"
-                    >
-                      <option value="">Select a service...</option>
-                      {services.map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.title}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* File Upload Area */}
-                <div className="mb-6">
-                  <div className="border-2 border-dashed border-gray-300 rounded-md p-8 text-center">
-                    <div className="flex flex-col items-center">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                      <p className="text-sm text-gray-500">Drag files here or click to upload</p>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {error && (
@@ -408,13 +386,23 @@ export default function CreateRequestPage() {
               )}
 
               <div className="flex items-center justify-between pt-6">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                  disabled={loading}
-                >
-                  Back
-                </button>
+                {user?.role === 'admin' ? (
+                  <button
+                    onClick={() => setStep(1)}
+                    className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    disabled={loading}
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleExit}
+                    className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    disabled={loading}
+                  >
+                    Exit
+                  </button>
+                )}
                 <button
                   onClick={handleCreateRequest}
                   disabled={!title || !description || loading}

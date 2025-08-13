@@ -40,7 +40,6 @@ const requestSchema = new mongoose.Schema({
   status: { type: String, enum: ['submitted', 'in_progress', 'in_review', 'completed', 'cancelled'], default: 'submitted' },
   priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
   client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
-  service_catalog_item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCatalogItem' },
   due_date: Date,
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
@@ -77,7 +76,7 @@ const serviceCatalogItemSchema = new mongoose.Schema({
 // Activity Log Entry Schema
 const activityLogEntrySchema = new mongoose.Schema({
   request_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Request', required: true },
-  org_id: { type: String, required: true },
+  org_id: { type: String, default: 'default' },
   action: { type: String, required: true },
   description: String,
   entity_type: String,

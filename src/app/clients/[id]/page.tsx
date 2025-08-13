@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { ArrowLeft, Edit, Eye, EyeOff, Save, X } from "lucide-react"
+import { ArrowLeft, Edit, Eye, EyeOff, Save, X, Search, Filter, Grid, List, FileText } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 
@@ -144,7 +144,7 @@ function ViewClientPageClient({ clientId }: { clientId: string }) {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-screen">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <Link 
@@ -165,7 +165,7 @@ function ViewClientPageClient({ clientId }: { clientId: string }) {
 
   if (error || !client) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-screen">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <Link 
@@ -193,7 +193,7 @@ function ViewClientPageClient({ clientId }: { clientId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
         <div className="flex items-center gap-4">
@@ -223,44 +223,44 @@ function ViewClientPageClient({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="px-6 py-2 bg-white border-b border-gray-200">
-        <div className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'requests'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Requests
-          </button>
-          <button
-            onClick={() => setActiveTab('invoices')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'invoices'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Invoices
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'settings'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Client Settings
-          </button>
-        </div>
-      </div>
+             {/* Tabs */}
+       <div className="px-6 py-2 bg-white border-b border-gray-200">
+         <div className="flex space-x-6">
+           <button
+             onClick={() => setActiveTab('requests')}
+             className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+               activeTab === 'requests'
+                 ? 'border-purple-500 text-purple-600'
+                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+             }`}
+           >
+             Requests
+           </button>
+           <button
+             onClick={() => setActiveTab('invoices')}
+             className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+               activeTab === 'invoices'
+                 ? 'border-purple-500 text-purple-600'
+                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+             }`}
+           >
+             Invoices
+           </button>
+           <button
+             onClick={() => setActiveTab('settings')}
+             className={`py-2 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+               activeTab === 'settings'
+                 ? 'border-purple-500 text-purple-600'
+                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+             }`}
+           >
+             Client Settings
+           </button>
+         </div>
+       </div>
 
-      {/* Content */}
-      <div className="flex-1 p-6 bg-gray-50">
+             {/* Content */}
+       <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
         {message && (
           <div className={`mb-4 p-3 rounded-md text-sm ${
             message.includes('successfully') 
@@ -271,35 +271,137 @@ function ViewClientPageClient({ clientId }: { clientId: string }) {
           </div>
         )}
 
-        {activeTab === 'requests' && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Requests</h3>
-              <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
-                Create Request
-              </button>
-            </div>
-            <div className="text-center py-8 text-gray-500">
-              <p>No requests yet for this client.</p>
-              <p className="text-sm mt-2">Create a new request to get started.</p>
-            </div>
-          </div>
-        )}
+                 {activeTab === 'requests' && (
+           <div className="bg-white rounded-lg border border-gray-200 p-6">
+             <div className="flex items-center justify-between mb-6">
+               <h3 className="text-lg font-medium text-gray-900">Requests</h3>
+               <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                 Create Request
+               </button>
+             </div>
 
-        {activeTab === 'invoices' && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Invoices</h3>
-              <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
-                Create Invoice
-              </button>
-            </div>
-            <div className="text-center py-8 text-gray-500">
-              <p>No invoices yet for this client.</p>
-              <p className="text-sm mt-2">Create a new invoice to get started.</p>
-            </div>
-          </div>
-        )}
+                           {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="text-2xl font-bold text-gray-900">0</div>
+                  <div className="text-sm text-gray-600">Active Requests</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="text-2xl font-bold text-gray-900">0</div>
+                  <div className="text-sm text-gray-600">Completed Requests</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 sm:col-span-2 lg:col-span-1">
+                  <div className="text-2xl font-bold text-gray-900">-</div>
+                  <div className="text-sm text-gray-600">Average rating</div>
+                </div>
+              </div>
+
+                           {/* Search and Filter Bar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                <div className="flex-1 relative w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search requests..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    <Filter size={16} />
+                    Filters
+                  </button>
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    <Grid size={16} />
+                  </button>
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    <List size={16} />
+                    List
+                  </button>
+                </div>
+              </div>
+
+             {/* Empty State */}
+             <div className="text-center py-12">
+               <div className="flex justify-center mb-4">
+                 <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                   <FileText className="text-gray-400" size={32} />
+                 </div>
+               </div>
+               <h3 className="text-lg font-medium text-gray-900 mb-2">No Requests yet</h3>
+               <p className="text-gray-500 mb-6">Get started by creating a new Request.</p>
+               <button className="px-6 py-3 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                 Create Request
+               </button>
+             </div>
+           </div>
+         )}
+
+                 {activeTab === 'invoices' && (
+           <div className="bg-white rounded-lg border border-gray-200 p-6">
+             <div className="flex items-center justify-between mb-6">
+               <h3 className="text-lg font-medium text-gray-900">Invoices</h3>
+               <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                 Create Invoice
+               </button>
+             </div>
+
+                           {/* Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="text-2xl font-bold text-gray-900">0</div>
+                  <div className="text-sm text-gray-600">Total Invoices</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="text-2xl font-bold text-gray-900">$0</div>
+                  <div className="text-sm text-gray-600">Total Amount</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 sm:col-span-2 lg:col-span-1">
+                  <div className="text-2xl font-bold text-gray-900">0</div>
+                  <div className="text-sm text-gray-600">Pending</div>
+                </div>
+              </div>
+
+                           {/* Search and Filter Bar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                <div className="flex-1 relative w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search invoices..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    <Filter size={16} />
+                    Filters
+                  </button>
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    <Grid size={16} />
+                  </button>
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    <List size={16} />
+                    List
+                  </button>
+                </div>
+              </div>
+
+             {/* Empty State */}
+             <div className="text-center py-12">
+               <div className="flex justify-center mb-4">
+                 <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                   <FileText className="text-gray-400" size={32} />
+                 </div>
+               </div>
+               <h3 className="text-lg font-medium text-gray-900 mb-2">No Invoices yet</h3>
+               <p className="text-gray-500 mb-6">Get started by creating a new Invoice.</p>
+               <button className="px-6 py-3 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                 Create Invoice
+               </button>
+             </div>
+           </div>
+         )}
 
         {activeTab === 'settings' && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">

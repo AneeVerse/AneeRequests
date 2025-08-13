@@ -1,7 +1,9 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
-import { ChevronDown, User, Send } from "lucide-react"
+import { ChevronDown, User, FileText, MessageCircle, Trash2, MoreVertical } from "lucide-react"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import SimpleTextEditor from "@/components/SimpleTextEditor"
 
 interface Client {
   id: string
@@ -10,12 +12,6 @@ interface Client {
   client_company?: {
     name: string
   }
-}
-
-interface ServiceCatalogItem {
-  id: string
-  title: string
-  description: string
 }
 
 interface Request {
@@ -29,7 +25,6 @@ interface Request {
   updated_at: string
   due_date?: string
   client?: Client
-  service_catalog_item?: ServiceCatalogItem
 }
 
 interface ActivityLogEntry {
@@ -40,47 +35,68 @@ interface ActivityLogEntry {
   entity_type?: string
   metadata?: Record<string, unknown>
   created_at: string
+  user_id?: string
+  user_name?: string
+  user_role?: string
 }
 
 export default function RequestDetailPage() {
   const params = useParams()
+  const { user } = useAuth()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   
   const [activeTab, setActiveTab] = useState("activity")
-  const [message, setMessage] = useState("")
   const [request, setRequest] = useState<Request | null>(null)
   const [activities, setActivities] = useState<ActivityLogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deletingMessage, setDeletingMessage] = useState<string | null>(null)
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+      }
+    }, 100)
+  }
+
+  useEffect(() => {
+    if (activities.length > 0) {
+      scrollToBottom()
+    }
+  }, [activities])
 
   useEffect(() => {
     const loadRequestData = async () => {
       try {
         setLoading(true)
         const requestId = params.id as string
-        // Using mocked data as before; API hookup can be added later
-        const mockRequest: Request = {
-          id: requestId,
-          title: "RR",
-          description: "RR",
-          status: "submitted",
-          priority: "medium",
-          client_id: "1",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          client: {
-            id: "1",
-            name: "John Doe",
-            email: "john@acmecorp.com",
-            client_company: { name: "ACME Corp." }
-          },
-          service_catalog_item: { id: "1", title: "Our awesome marketing strategy", description: "Marketing services" }
+        
+        // Load request details
+        const requestResponse = await fetch(`/api/requests/${requestId}`)
+        if (!requestResponse.ok) {
+          throw new Error('Failed to load request')
         }
-        const mockActivities: ActivityLogEntry[] = [
-          { id: "1", request_id: requestId, action: "request_submitted", description: "Request was submitted", entity_type: "request", created_at: new Date().toISOString() }
-        ]
-        setRequest(mockRequest)
-        setActivities(mockActivities)
+        const requestData = await requestResponse.json()
+        setRequest(requestData)
+
+        // Load activity log
+        const activityResponse = await fetch(`/api/requests/${requestId}/activity`)
+        if (!activityResponse.ok) {
+          throw new Error('Failed to load activity')
+        }
+        const activityData = await activityResponse.json()
+        setActivities(activityData)
+        
+        // Scroll to bottom after loading activities
+        setTimeout(() => {
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+          }
+        }, 200)
       } catch (err) {
         console.error('Error loading request:', err)
         setError('Failed to load request details')
@@ -125,27 +141,150 @@ export default function RequestDetailPage() {
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!message.trim() || !request) return
+  // Function to render markdown content with images
+  const renderMarkdownContent = (content: string) => {
+    if (!content) return ''
+    
+    // Convert markdown to HTML
+    let html = content
+    
+    // Handle bold text: **text** -> <strong>text</strong>
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    
+    // Handle italic text: *text* -> <em>text</em>
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+    
+    // Handle underline text: __text__ -> <u>text</u>
+    html = html.replace(/__(.*?)__/g, '<u>$1</u>')
+    
+    // Handle images: ![alt](src) -> <img alt="alt" src="src" />
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" class="max-w-full h-auto rounded-lg shadow-sm my-2" />')
+    
+    // Handle links: [text](url) -> <a href="url">text</a>
+    html = html.replace(/\[([^\]]*)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+    
+    // Handle bullet lists: • item -> <li>item</li>
+    html = html.replace(/^•\s+(.+)$/gm, '<li>$1</li>')
+    
+    // Handle numbered lists: 1. item -> <li>item</li>
+    html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+    
+    // Convert line breaks to <br> tags
+    html = html.replace(/\n/g, '<br>')
+    
+    return html
+  }
+
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim() || !request) return
 
     setSendingMessage(true)
     try {
-      // Push new activity locally (mock)
-      const newActivity: ActivityLogEntry = {
-        id: Date.now().toString(),
-        request_id: request.id,
-        action: 'message_posted',
-        description: message.trim(),
-        entity_type: 'message',
-        created_at: new Date().toISOString()
+      const response = await fetch(`/api/requests/${request.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'message_posted',
+          description: content.trim(),
+          entity_type: 'message',
+          metadata: {
+            user_id: user?.id,
+            user_name: user?.name,
+            user_role: user?.role
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
       }
-      setActivities(prev => [newActivity, ...prev])
-      setMessage("")
+
+      const newActivity = await response.json()
+      setActivities(prev => [...prev, newActivity]) // Add to end instead of beginning
+      
+      // Scroll to bottom after adding new message
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+        }
+      }, 150)
     } catch (err) {
       console.error('Error sending message:', err)
+      setError('Failed to send message')
     } finally {
       setSendingMessage(false)
     }
+  }
+
+  const handleDeleteMessage = async (activityId: string) => {
+    if (!request) return
+    
+    setDeletingMessage(activityId)
+    try {
+      const response = await fetch(`/api/requests/${request.id}/activity/${activityId}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete message')
+      }
+      
+      // Remove the message from the local state
+      setActivities(prev => prev.filter(activity => activity.id !== activityId))
+    } catch (err) {
+      console.error('Error deleting message:', err)
+      setError('Failed to delete message')
+    } finally {
+      setDeletingMessage(null)
+    }
+  }
+
+  const handleDeleteRequest = async () => {
+    if (!request) return
+    
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/requests/${request.id}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete request')
+      }
+      
+      // Redirect to requests list
+      window.location.href = '/requests'
+    } catch (err) {
+      console.error('Error deleting request:', err)
+      setError('Failed to delete request')
+    } finally {
+      setDeleting(false)
+      setShowDeleteModal(false)
+    }
+  }
+
+  const isAdmin = user?.role === 'admin'
+  const isClient = user?.role === 'client'
+  
+  // Check if user can send messages
+  // Admin can always send messages
+  // Client can send messages if they own the request OR if they're impersonating
+  const canSendMessage = isAdmin || (
+    isClient && (
+      request?.client_id === (user as any)?.clientId || 
+      request?.client_id === user?.id ||
+      user?.id?.startsWith('impersonated-') || // Allow impersonated users
+      ((user as any)?.clientId && request?.client_id === (user as any)?.clientId) // Direct client ID match
+    )
+  )
+
+  // Check if user can delete a specific message
+  const canDeleteMessage = (activity: ActivityLogEntry) => {
+    if (isAdmin) return true
+    if (activity.action !== 'message_posted') return false
+    return activity.metadata?.user_id === user?.id
   }
 
   if (loading) {
@@ -172,9 +311,9 @@ export default function RequestDetailPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex lg:flex-row flex-col">
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Request Title */}
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-2xl font-bold text-gray-900">{request.title}</h2>
@@ -182,10 +321,10 @@ export default function RequestDetailPage() {
 
           {/* Tabs */}
           <div className="border-b border-gray-200 px-6">
-            <div className="flex gap-8">
+            <div className="flex gap-8 overflow-x-auto">
               <button
                 onClick={() => setActiveTab("activity")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === "activity"
                     ? "text-purple-600 border-purple-600"
                     : "text-gray-500 border-transparent hover:text-gray-700"
@@ -195,7 +334,7 @@ export default function RequestDetailPage() {
               </button>
               <button
                 onClick={() => setActiveTab("details")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === "details"
                     ? "text-purple-600 border-purple-600"
                     : "text-gray-500 border-transparent hover:text-gray-700"
@@ -205,7 +344,7 @@ export default function RequestDetailPage() {
               </button>
               <button
                 onClick={() => setActiveTab("files")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === "files"
                     ? "text-purple-600 border-purple-600"
                     : "text-gray-500 border-transparent hover:text-gray-700"
@@ -215,7 +354,7 @@ export default function RequestDetailPage() {
               </button>
               <button
                 onClick={() => setActiveTab("checklists")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === "checklists"
                     ? "text-purple-600 border-purple-600"
                     : "text-gray-500 border-transparent hover:text-gray-700"
@@ -225,7 +364,7 @@ export default function RequestDetailPage() {
               </button>
               <button
                 onClick={() => setActiveTab("timesheets")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === "timesheets"
                     ? "text-purple-600 border-purple-600"
                     : "text-gray-500 border-transparent hover:text-gray-700"
@@ -237,122 +376,111 @@ export default function RequestDetailPage() {
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {activeTab === "activity" && (
-              <div className="space-y-6">
-                {/* Activity Items */}
-                {activities.map((activity) => (
-                  <div key={activity.id} className="flex gap-4">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium text-gray-900">
-                            {activity.action === 'request_submitted' ? 'You submitted the Request' : 
-                             activity.action === 'message_posted' ? 'You posted a message' :
-                             activity.action}
-                          </span>
-                          <span className="text-sm text-gray-500">{formatDate(activity.created_at)}</span>
-                        </div>
-                        {activity.description && (
-                          <div>
-                            {activity.action === 'request_submitted' && (
-                              <>
-                                <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                                <p className="text-gray-700">{request.description}</p>
-                              </>
-                            )}
-                            {activity.action === 'message_posted' && (
-                              <p className="text-gray-700">{activity.description}</p>
-                            )}
-                            {activity.action !== 'request_submitted' && activity.action !== 'message_posted' && (
-                              <p className="text-gray-700">{activity.description}</p>
-                            )}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Chat Messages Area */}
+                <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ maxHeight: 'calc(100vh - 500px)', minHeight: '300px' }}>
+                  <div className="space-y-6">
+                    {/* Activity Items */}
+                    {activities.map((activity) => (
+                      <div key={activity.id} className="group">
+                        {activity.action === 'request_submitted' ? (
+                          <div className="flex items-start gap-4">
+                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <FileText size={16} className="text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-900">Request submitted</span>
+                                    <span className="text-sm text-gray-500">{formatDate(activity.created_at)}</span>
+                                  </div>
+                                </div>
+                                {activity.description && (
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+                                    <p className="text-gray-700">{request.description}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : activity.action === 'message_posted' ? (
+                          <div className="flex items-start gap-4">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              activity.metadata?.user_role === 'admin' 
+                                ? 'bg-purple-600' 
+                                : 'bg-blue-600'
+                            }`}>
+                              <span className="text-white text-sm font-medium">
+                                {activity.metadata?.user_role === 'admin' ? 'A' : 'C'}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-900">
+                                    {activity.metadata?.user_name || (activity.metadata?.user_role === 'admin' ? 'Admin' : 'Client')}
+                                  </span>
+                                  <span className="text-sm text-gray-500">{formatDate(activity.created_at)}</span>
+                                </div>
+                                {canDeleteMessage(activity) && (
+                                  <button
+                                    onClick={() => handleDeleteMessage(activity.id)}
+                                    disabled={deletingMessage === activity.id}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                    title="Delete message"
+                                  >
+                                    {deletingMessage === activity.id ? (
+                                      <div className="w-4 h-4 animate-spin border-2 border-red-600 border-t-transparent rounded-full"></div>
+                                    ) : (
+                                      <Trash2 size={14} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                <div 
+                                  className="text-gray-700 prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: renderMarkdownContent(activity.description || '') }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-4">
+                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                            </div>
+                            <div className="flex-1">
+                              <div className="bg-gray-50 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-medium text-gray-900">{activity.action}</span>
+                                  <span className="text-sm text-gray-500">{formatDate(activity.created_at)}</span>
+                                </div>
+                                {activity.description && (
+                                  <p className="text-gray-700">{activity.description}</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
-                    </div>
+                    ))}
+                    <div ref={messagesEndRef} />
                   </div>
-                ))}
+                </div>
 
-                {/* Message Input */}
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="border border-gray-300 rounded-md">
-                    {/* Rich Text Editor Toolbar */}
-                    <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-200 bg-gray-50">
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded font-bold">B</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded italic">I</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded underline">U</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded line-through">S</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2M7 4h6M7 4H6a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-1" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="flex">
-                      <textarea
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        className="flex-1 px-3 py-2 min-h-20 border-0 focus:outline-none focus:ring-0 resize-none text-gray-900"
-                        placeholder="Type your message..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-2">
-                      <button className="p-2 text-gray-400 hover:text-gray-600 rounded">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-gray-600 rounded">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2M7 4h6M7 4H6a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-1" />
-                        </svg>
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-gray-600 rounded">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-gray-600 rounded">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-gray-600 rounded">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </button>
-                    </div>
-                    <button
-                      onClick={handleSendMessage}
-                      disabled={!message.trim() || sendingMessage}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send size={16} />
-                      {sendingMessage ? 'Sending...' : ''}
-                    </button>
-                  </div>
+                {/* Message Input - Fixed Position */}
+                <div className="border-t border-gray-200 p-4 bg-white">
+                  <SimpleTextEditor
+                    onSend={handleSendMessage}
+                    placeholder={canSendMessage ? "Type your message..." : "You cannot send messages to this request"}
+                    disabled={!canSendMessage}
+                    sending={sendingMessage}
+                  />
                 </div>
               </div>
             )}
@@ -366,15 +494,14 @@ export default function RequestDetailPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="w-80 border-l border-gray-200 p-6">
+        {/* Sidebar - Always visible for both admin and client */}
+        <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-gray-200 p-6 bg-gray-50 flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Summary</h3>
           
           <div className="space-y-4">
             <div>
               <div className="text-sm font-medium text-gray-900 mb-1">{request.title}</div>
               <div className="text-sm text-gray-500">Created: {formatDate(request.created_at)}</div>
-              <div className="text-sm text-gray-500">Service: {request.service_catalog_item?.title || 'No service selected'}</div>
             </div>
 
             <div className="flex items-center gap-3 py-3 border-t border-gray-200">
@@ -430,10 +557,98 @@ export default function RequestDetailPage() {
                   </svg>
                 </button>
               </div>
+
+              {/* Delete Request Option - Only for admins */}
+              {isAdmin && (
+                <div className="pt-3 border-t border-gray-200">
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Request
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Request</h3>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete this request? This action cannot be undone and will permanently remove the request and all associated messages.
+              </p>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Warning</p>
+                    <p className="text-sm text-red-700 mt-1">This will delete the request "{request?.title}" and all its activity history.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="flex gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRequest}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deleting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </div>
+                ) : (
+                  'Delete Request'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
