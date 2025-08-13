@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Filter, LayoutGrid, ChevronDown, MoreHorizontal, Plus, X } from "lucide-react"
+import RouteGuard from "@/components/RouteGuard"
 
 interface TeamMember {
   id: string
@@ -106,7 +107,8 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <RouteGuard requireAdmin>
+      <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
         <h1 className="text-xl font-semibold text-gray-900">Team</h1>
@@ -373,5 +375,6 @@ export default function TeamPage() {
         </div>
       )}
     </div>
+    </RouteGuard>
   )
 }

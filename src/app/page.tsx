@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react"
 import { Calendar, Filter, List, LayoutGrid, ChevronDown } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 
 interface DashboardStats {
   revenue: number
@@ -35,6 +37,8 @@ interface Request {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [stats, setStats] = useState<DashboardStats>({
     revenue: 0,
     clients: 0,
@@ -47,21 +51,53 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    // Redirect to login if not authenticated
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    
+    if (isAuthenticated) {
+      loadDashboardData()
+    }
+  }, [isAuthenticated, isLoading, router])
 
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/dashboard/stats')
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data')
+      if (user?.role === 'admin') {
+        // Admin sees all data
+        const response = await fetch('/api/dashboard/stats')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data')
+        }
+        
+        const data = await response.json()
+        setStats(data.stats)
+        setRecentRequests(data.recentRequests)
+      } else {
+        // Client sees only their own data
+        const response = await fetch('/api/requests')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch requests data')
+        }
+        
+        const requestsData = await response.json()
+        // Filter requests for this client (in real app, this would be by client ID)
+        const clientRequests = requestsData.slice(0, 5) // Just show first 5 for demo
+        
+        setStats({
+          revenue: 0,
+          clients: 1, // Just themselves
+          requests: clientRequests.length,
+          reviews: 0,
+          team: 0
+        })
+        setRecentRequests(clientRequests)
       }
-      
-      const data = await response.json()
-      setStats(data.stats)
-      setRecentRequests(data.recentRequests)
     } catch (err) {
       console.error('Error loading dashboard data:', err)
       setError('Failed to load dashboard data')
@@ -103,7 +139,9 @@ export default function DashboardPage() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900">Welcome, anees</h1>
+        <h1 className="text-xl font-semibold text-gray-900">
+          Welcome, {user?.name || 'User'}
+        </h1>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md">
             <Calendar size={16} />
@@ -113,8 +151,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="px-6 py-6">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Metrics Grid */}
+        <div className="px-6 py-6">
         <div className="grid grid-cols-4 gap-6 mb-8">
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REVENUE</div>
@@ -127,14 +167,18 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">CLIENTS</div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              {user?.role === 'admin' ? 'CLIENTS' : 'PROJECTS'}
+            </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.clients}
             </div>
             <div className="text-sm text-gray-400">—</div>
           </div>
           <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REQUESTS</div>
+            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              {user?.role === 'admin' ? 'REQUESTS' : 'MY REQUESTS'}
+            </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.requests}
             </div>
@@ -204,92 +248,98 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Table Headers */}
-        <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50 rounded-t-md">
-          <div className="col-span-1 flex items-center">
-            <input type="checkbox" className="w-4 h-4 text-purple-600 border-gray-300 rounded" />
-          </div>
-          <div className="col-span-3">TITLE</div>
-          <div className="col-span-2">CLIENT</div>
-          <div className="col-span-1">STATUS</div>
-          <div className="col-span-2">ASSIGNED TO</div>
-          <div className="col-span-1">PRIORITY</div>
-          <div className="col-span-1">UPDATED</div>
-          <div className="col-span-1">DUE DATE</div>
-        </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-16 border border-gray-200 rounded-b-md">
-            <div className="text-gray-500">Loading requests...</div>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="flex items-center justify-center py-16 border border-gray-200 rounded-b-md">
-            <div className="text-red-600">{error}</div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && recentRequests.length === 0 && (
-          <div className="flex items-center justify-center py-16 border border-gray-200 rounded-b-md">
-            <div className="text-center">
-              <div className="text-gray-500 mb-4">No requests yet</div>
-              <p className="text-sm text-gray-400">Create your first client to get started with requests</p>
-            </div>
-          </div>
-        )}
-
-        {/* Table Rows */}
-        {!loading && !error && recentRequests.map((request) => (
-          <Link 
-            key={request.id}
-            href={`/requests/${request.id}`}
-            className="grid grid-cols-12 gap-4 px-4 py-4 text-sm border-l border-r border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
-          >
+        {/* Scrollable Table Container */}
+        <div className="border border-gray-200 rounded-md overflow-hidden">
+          {/* Table Headers */}
+          <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50">
             <div className="col-span-1 flex items-center">
               <input type="checkbox" className="w-4 h-4 text-purple-600 border-gray-300 rounded" />
             </div>
-            <div className="col-span-3">
-              <div className="font-medium text-gray-900">{request.title}</div>
-              <div className="text-gray-500 text-xs mt-1">
-                {request.service_catalog_item?.title || request.description?.substring(0, 50) + '...' || 'No description'}
+            <div className="col-span-3">TITLE</div>
+            <div className="col-span-2">CLIENT</div>
+            <div className="col-span-1">STATUS</div>
+            <div className="col-span-2">ASSIGNED TO</div>
+            <div className="col-span-1">PRIORITY</div>
+            <div className="col-span-1">UPDATED</div>
+            <div className="col-span-1">DUE DATE</div>
+          </div>
+
+          {/* Table Body */}
+          <div>
+            {/* Loading State */}
+            {loading && (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-gray-500">Loading requests...</div>
               </div>
-            </div>
-            <div className="col-span-2">
-              <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
-              <div className="text-gray-500 text-xs">{request.client?.client_company?.name || 'Individual'}</div>
-            </div>
-            <div className="col-span-1">
-              <span className={`text-sm font-medium capitalize ${getStatusColor(request.status)}`}>
-                {request.status.replace('_', ' ')}
-              </span>
-            </div>
-            <div className="col-span-2">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                <span className="text-gray-500">None</span>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-red-600">{error}</div>
               </div>
-            </div>
-            <div className="col-span-1">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
-                <span className="text-gray-500 capitalize">{request.priority}</span>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && recentRequests.length === 0 && (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                  <div className="text-gray-500 mb-4">No requests yet</div>
+                  <p className="text-sm text-gray-400">Create your first client to get started with requests</p>
+                </div>
               </div>
-            </div>
-            <div className="col-span-1 text-gray-500">
-              {formatDate(request.updated_at)}
-            </div>
-            <div className="col-span-1">
-              <div className="flex items-center gap-1 text-gray-500">
-                <span>{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
-                <ChevronDown size={12} />
-              </div>
-            </div>
-          </Link>
-        ))}
+            )}
+
+            {/* Table Rows */}
+            {!loading && !error && recentRequests.map((request) => (
+              <Link 
+                key={request.id}
+                href={`/requests/${request.id}`}
+                className="grid grid-cols-12 gap-4 px-4 py-4 text-sm border-b border-gray-200 hover:bg-gray-50 cursor-pointer last:border-b-0"
+              >
+                <div className="col-span-1 flex items-center">
+                  <input type="checkbox" className="w-4 h-4 text-purple-600 border-gray-300 rounded" />
+                </div>
+                <div className="col-span-3">
+                  <div className="font-medium text-gray-900">{request.title}</div>
+                  <div className="text-gray-500 text-xs mt-1">
+                    {request.service_catalog_item?.title || request.description?.substring(0, 50) + '...' || 'No description'}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
+                  <div className="text-gray-500 text-xs">{request.client?.client_company?.name || 'Individual'}</div>
+                </div>
+                <div className="col-span-1">
+                  <span className={`text-sm font-medium capitalize ${getStatusColor(request.status)}`}>
+                    {request.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                    <span className="text-gray-500">None</span>
+                  </div>
+                </div>
+                <div className="col-span-1">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
+                    <span className="text-gray-500 capitalize">{request.priority}</span>
+                  </div>
+                </div>
+                <div className="col-span-1 text-gray-500">
+                  {formatDate(request.updated_at)}
+                </div>
+                <div className="col-span-1">
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <span>{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
+                    <ChevronDown size={12} />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
 
         {/* Footer */}
         {!loading && !error && recentRequests.length > 0 && (
@@ -330,6 +380,7 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

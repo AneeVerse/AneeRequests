@@ -1,0 +1,307 @@
+"use client"
+import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import { AuthState, User, AdminUser, ClientUser, LoginCredentials, ChangePasswordData } from '../types/auth'
+
+
+
+interface AuthContextType extends AuthState {
+  login: (credentials: LoginCredentials) => Promise<{ success: boolean; message: string }>
+  logout: () => void
+  impersonateClient: (clientId: string, clientName: string, clientEmail: string, clientCompany?: string) => void
+  stopImpersonation: () => void
+  changePassword: (data: ChangePasswordData) => Promise<{ success: boolean; message: string }>
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; message: string }>
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+type AuthAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'LOGIN_SUCCESS'; payload: User }
+  | { type: 'LOGOUT' }
+  | { type: 'IMPERSONATE_CLIENT'; payload: { clientUser: ClientUser; originalUser: AdminUser } }
+  | { type: 'STOP_IMPERSONATION' }
+  | { type: 'CHANGE_PASSWORD'; payload: string }
+
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload }
+    
+    case 'LOGIN_SUCCESS':
+      return {
+        ...state,
+        user: action.payload,
+        isAuthenticated: true,
+        isLoading: false,
+        impersonating: false,
+        originalUser: undefined
+      }
+    
+    case 'LOGOUT':
+      return {
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        impersonating: false,
+        originalUser: undefined
+      }
+    
+    case 'IMPERSONATE_CLIENT':
+      return {
+        ...state,
+        user: action.payload.clientUser,
+        impersonating: true,
+        originalUser: action.payload.originalUser
+      }
+    
+    case 'STOP_IMPERSONATION':
+      return {
+        ...state,
+        user: state.originalUser || null,
+        impersonating: false,
+        originalUser: undefined
+      }
+    
+    case 'CHANGE_PASSWORD':
+      // In a real app, you'd update the password in the database
+      return state
+    
+    default:
+      return state
+  }
+}
+
+const initialState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  impersonating: false
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(authReducer, initialState)
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      const savedUser = localStorage.getItem('auth_user')
+      const savedImpersonation = localStorage.getItem('auth_impersonation')
+      
+      if (savedUser) {
+        const user = JSON.parse(savedUser) as User
+        dispatch({ type: 'LOGIN_SUCCESS', payload: user })
+        
+        if (savedImpersonation) {
+          const impersonation = JSON.parse(savedImpersonation)
+          dispatch({ 
+            type: 'IMPERSONATE_CLIENT', 
+            payload: {
+              clientUser: impersonation.clientUser,
+              originalUser: impersonation.originalUser
+            }
+          })
+        }
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false })
+      }
+    }
+
+    checkAuth()
+  }, [])
+
+  const login = async (credentials: LoginCredentials): Promise<{ success: boolean; message: string }> => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
+
+      let user: User
+      
+      if (data.user.role === 'admin') {
+        user = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          role: 'admin'
+        } as AdminUser
+      } else {
+        user = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          role: 'client',
+          clientId: data.user.client_id,
+          clientName: data.user.name,
+          clientCompany: 'Individual'
+        } as ClientUser
+      }
+      
+      localStorage.setItem('auth_user', JSON.stringify(user))
+      dispatch({ type: 'LOGIN_SUCCESS', payload: user })
+      
+      return { success: true, message: 'Login successful' }
+      
+    } catch (error) {
+      dispatch({ type: 'SET_LOADING', payload: false })
+      return { success: false, message: error instanceof Error ? error.message : 'Login failed' }
+    }
+  }
+
+  const logout = () => {
+    localStorage.removeItem('auth_user')
+    localStorage.removeItem('auth_impersonation')
+    dispatch({ type: 'LOGOUT' })
+    // Redirect to login page
+    window.location.href = '/login'
+  }
+
+  const impersonateClient = (clientId: string, clientName: string, clientEmail: string, clientCompany?: string) => {
+    if (state.user?.role !== 'admin') return
+    
+    const clientUser: ClientUser = {
+      id: `impersonated-${clientId}`,
+      email: clientEmail,
+      name: clientName,
+      role: 'client',
+      clientId,
+      clientName,
+      clientCompany
+    }
+    
+    const impersonationData = {
+      clientUser,
+      originalUser: state.user as AdminUser
+    }
+    
+    localStorage.setItem('auth_impersonation', JSON.stringify(impersonationData))
+    dispatch({ type: 'IMPERSONATE_CLIENT', payload: impersonationData })
+  }
+
+  const stopImpersonation = () => {
+    localStorage.removeItem('auth_impersonation')
+    dispatch({ type: 'STOP_IMPERSONATION' })
+    // Redirect to login page when stopping impersonation
+    window.location.href = '/login'
+  }
+
+  const changePassword = async (data: ChangePasswordData): Promise<{ success: boolean; message: string }> => {
+    if (data.newPassword !== data.confirmPassword) {
+      return { success: false, message: 'New passwords do not match' }
+    }
+    
+    if (data.newPassword.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters' }
+    }
+    
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: state.user?.id,
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Password change failed')
+      }
+
+      dispatch({ type: 'CHANGE_PASSWORD', payload: data.newPassword })
+      return { success: true, message: 'Password updated successfully' }
+      
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Password change failed' }
+    }
+  }
+
+  const register = async (email: string, password: string, name: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name, role: 'client' }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed')
+      }
+
+      return { success: true, message: 'Registration successful. Please check your email to verify your account.' }
+      
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Registration failed' }
+    }
+  }
+
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Password reset request failed')
+      }
+
+      return { success: true, message: 'Password reset email sent. Please check your inbox.' }
+      
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Password reset request failed' }
+    }
+  }
+
+  const value: AuthContextType = {
+    ...state,
+    login,
+    logout,
+    impersonateClient,
+    stopImpersonation,
+    changePassword,
+    register,
+    requestPasswordReset
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}

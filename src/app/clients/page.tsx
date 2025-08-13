@@ -1,7 +1,9 @@
 "use client"
-import { useState, useEffect } from "react"
-import { Filter, LayoutGrid, ChevronDown, MoreHorizontal, Plus } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Filter, LayoutGrid, ChevronDown, MoreHorizontal, Plus, Eye, Edit, UserCheck, ArrowRightLeft, Trash2, X, Search } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import RouteGuard from "@/components/RouteGuard"
 
 interface Client {
   id: string
@@ -13,14 +15,67 @@ interface Client {
   }
 }
 
+interface Organization {
+  _id: string
+  name: string
+  clientCount: number
+}
+
 export default function ClientsPage() {
+  const { user, impersonateClient } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null)
+  const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+  
+  // Change organization modal state
+  const [showChangeOrgModal, setShowChangeOrgModal] = useState(false)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [loadingOrgs, setLoadingOrgs] = useState(false)
+  const [selectedOrg, setSelectedOrg] = useState<string>('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [changingOrg, setChangingOrg] = useState(false)
 
   useEffect(() => {
     loadClients()
   }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId && menuRefs.current[openMenuId]) {
+        if (!menuRefs.current[openMenuId]!.contains(event.target as Node)) {
+          setOpenMenuId(null)
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [openMenuId])
+
+  // Close modal when clicking outside
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowChangeOrgModal(false)
+      }
+    }
+
+    if (showChangeOrgModal) {
+      document.addEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'unset'
+    }
+  }, [showChangeOrgModal])
 
   const loadClients = async () => {
     try {
@@ -52,9 +107,106 @@ export default function ClientsPage() {
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
+
+  const toggleMenu = (clientId: string) => {
+    setOpenMenuId(openMenuId === clientId ? null : clientId)
+  }
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
+      return
+    }
+
+    setDeletingClientId(clientId)
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete client')
+      }
+
+      // Remove the client from the list
+      setClients(prev => prev.filter(client => client.id !== clientId))
+      setOpenMenuId(null)
+    } catch (err) {
+      console.error('Error deleting client:', err)
+      alert('Failed to delete client')
+    } finally {
+      setDeletingClientId(null)
+    }
+  }
+
+  const loadOrganizations = async () => {
+    try {
+      setLoadingOrgs(true)
+      const response = await fetch('/api/organizations')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch organizations')
+      }
+      
+      const data = await response.json()
+      setOrganizations(data)
+    } catch (err) {
+      console.error('Error loading organizations:', err)
+      alert('Failed to load organizations')
+    } finally {
+      setLoadingOrgs(false)
+    }
+  }
+
+  const openChangeOrgModal = async (client: Client) => {
+    setSelectedClient(client)
+    setSelectedOrg(client.client_company?.name || '')
+    setSearchTerm('')
+    setShowChangeOrgModal(true)
+    await loadOrganizations()
+  }
+
+  const handleChangeOrganization = async () => {
+    if (!selectedClient) return
+
+    setChangingOrg(true)
+    try {
+      const response = await fetch(`/api/clients/${selectedClient.id}/change-organization`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ organizationName: selectedOrg }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update organization')
+      }
+
+      // Update the client in the list
+      setClients(prev => prev.map(client => 
+        client.id === selectedClient.id 
+          ? { ...client, client_company: selectedOrg ? { name: selectedOrg } : undefined }
+          : client
+      ))
+
+      setShowChangeOrgModal(false)
+      setSelectedClient(null)
+      setSelectedOrg('')
+    } catch (err) {
+      console.error('Error changing organization:', err)
+      alert('Failed to change organization')
+    } finally {
+      setChangingOrg(false)
+    }
+  }
+
+  const filteredOrganizations = organizations.filter(org =>
+    org.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
   
   return (
-    <div className="flex flex-col h-full">
+    <RouteGuard requireAdmin>
+      <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
         <h1 className="text-xl font-semibold text-gray-900">Clients</h1>
@@ -67,7 +219,7 @@ export default function ClientsPage() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
           >
             <Plus size={16} />
-            Create client
+            Create Client Account
           </Link>
         </div>
       </div>
@@ -194,10 +346,75 @@ export default function ClientsPage() {
               <div className="col-span-2 text-gray-500">
                 {formatDate(client.created_at)}
               </div>
-              <div className="col-span-1 flex justify-end">
-                <button className="p-1 text-gray-400 hover:text-gray-600">
+              <div className="col-span-1 flex justify-end relative">
+                <button 
+                  onClick={() => toggleMenu(client.id)}
+                  className="p-1 text-gray-400 hover:text-gray-600"
+                  disabled={deletingClientId === client.id}
+                >
                   <MoreHorizontal size={16} />
                 </button>
+                
+                {openMenuId === client.id && (
+                  <div 
+                    ref={(el) => { menuRefs.current[client.id] = el }}
+                    className="absolute right-0 top-8 z-10 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1"
+                  >
+                    <Link
+                      href={`/clients/${client.id}`}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setOpenMenuId(null)}
+                    >
+                      <Eye size={16} />
+                      View
+                    </Link>
+                    <Link
+                      href={`/clients/${client.id}/edit`}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setOpenMenuId(null)}
+                    >
+                      <Edit size={16} />
+                      Edit
+                    </Link>
+                    <button
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => {
+                        setOpenMenuId(null)
+                        if (user?.role === 'admin') {
+                          impersonateClient(
+                            client.id,
+                            client.name,
+                            client.email || '',
+                            client.client_company?.name
+                          )
+                        } else {
+                          alert('Only admins can impersonate clients')
+                        }
+                      }}
+                    >
+                      <UserCheck size={16} />
+                      Impersonate
+                    </button>
+                    <button
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => {
+                        setOpenMenuId(null)
+                        openChangeOrgModal(client)
+                      }}
+                    >
+                      <ArrowRightLeft size={16} />
+                      Change organization
+                    </button>
+                    <button
+                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      onClick={() => handleDeleteClient(client.id)}
+                      disabled={deletingClientId === client.id}
+                    >
+                      <Trash2 size={16} />
+                      {deletingClientId === client.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -241,8 +458,127 @@ export default function ClientsPage() {
             </div>
             </div>
           </div>
-        )}
-      </div>
-    </div>
-  )
-}
+                 )}
+       </div>
+
+       {/* Change Organization Modal */}
+       {showChangeOrgModal && selectedClient && (
+         <div 
+           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+           onClick={() => setShowChangeOrgModal(false)}
+         >
+                      <div 
+             className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4"
+             onClick={(e) => e.stopPropagation()}
+           >
+             {/* Modal Header */}
+             <div className="flex items-center justify-between p-6 border-b border-gray-200">
+               <h3 className="text-lg font-medium text-gray-900">
+                 Change client to another organization
+               </h3>
+               <button
+                 onClick={() => setShowChangeOrgModal(false)}
+                 className="text-gray-400 hover:text-gray-600"
+               >
+                 <X size={20} />
+               </button>
+             </div>
+
+             {/* Modal Body */}
+             <div className="p-6">
+               <div className="mb-4">
+                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                   Organization
+                 </label>
+                 <select
+                   value={selectedOrg}
+                   onChange={(e) => setSelectedOrg(e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                 >
+                   <option value="">Select an option</option>
+                   <option value="">Individual (No Organization)</option>
+                   {organizations.map((org) => (
+                     <option key={org._id} value={org.name}>
+                       {org.name} ({org.clientCount} clients)
+                     </option>
+                   ))}
+                 </select>
+               </div>
+
+               <div className="mb-4">
+                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                   Search
+                 </label>
+                 <div className="relative">
+                   <input
+                     type="text"
+                     placeholder="Search..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                   />
+                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                 </div>
+               </div>
+
+               {/* Organization List */}
+               <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
+                 {loadingOrgs ? (
+                   <div className="p-4 text-center text-gray-500">
+                     Loading organizations...
+                   </div>
+                 ) : filteredOrganizations.length === 0 ? (
+                   <div className="p-4 text-center text-gray-500">
+                     No organizations found
+                   </div>
+                 ) : (
+                   <div className="divide-y divide-gray-200">
+                     <div
+                       className={`p-3 cursor-pointer hover:bg-gray-50 ${
+                         selectedOrg === '' ? 'bg-purple-50 border-l-4 border-purple-500' : ''
+                       }`}
+                       onClick={() => setSelectedOrg('')}
+                     >
+                       <div className="font-medium text-gray-900">Individual</div>
+                       <div className="text-sm text-gray-500">No organization</div>
+                     </div>
+                     {filteredOrganizations.map((org) => (
+                       <div
+                         key={org._id}
+                         className={`p-3 cursor-pointer hover:bg-gray-50 ${
+                           selectedOrg === org.name ? 'bg-purple-50 border-l-4 border-purple-500' : ''
+                         }`}
+                         onClick={() => setSelectedOrg(org.name)}
+                       >
+                         <div className="font-medium text-gray-900">{org.name}</div>
+                         <div className="text-sm text-gray-500">{org.clientCount} clients</div>
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             </div>
+
+             {/* Modal Footer */}
+             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+               <button
+                 onClick={() => setShowChangeOrgModal(false)}
+                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+               >
+                 Cancel
+               </button>
+               <button
+                 onClick={handleChangeOrganization}
+                 disabled={changingOrg}
+                 className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                 {changingOrg ? 'Changing...' : 'Change Organization'}
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+     </RouteGuard>
+   )
+ }

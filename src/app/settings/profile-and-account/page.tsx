@@ -1,5 +1,8 @@
 "use client"
 import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/contexts/AuthContext"
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 
 interface Profile {
   id?: string
@@ -10,6 +13,7 @@ interface Profile {
 }
 
 export default function ProfileAndAccountPage() {
+  const { user } = useAuth()
   const [profile, setProfile] = useState<Profile>({ name: "", email: "" })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -22,15 +26,14 @@ export default function ProfileAndAccountPage() {
   const load = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/settings/profile')
-      if (res.ok) {
-        const data = await res.json()
+      // Use auth context data instead of API call for now
+      if (user) {
         setProfile({
-          id: data.id,
-          name: data.name || "",
-          email: data.email || "",
-          avatar_url: data.avatar_url || "",
-          language: data.language || 'en'
+          id: user.id,
+          name: user.name || "",
+          email: user.email || "",
+          avatar_url: "",
+          language: 'en'
         })
       }
     } finally {
@@ -128,6 +131,23 @@ export default function ProfileAndAccountPage() {
                   <option value="ar">Arabic</option>
                   <option value="hi">Hindi</option>
                 </select>
+              </div>
+
+              {/* Update Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Update password</label>
+                <div className="flex items-center justify-between p-3 border border-gray-300 rounded-md">
+                  <div>
+                    <p className="text-sm text-gray-600">Follow the recovery process to change your password.</p>
+                  </div>
+                  <Link
+                    href="/settings/change-password"
+                    className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    Update password
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
               </div>
 
               <div className="flex justify-end">

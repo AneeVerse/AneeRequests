@@ -1,5 +1,6 @@
 "use client"
 import Link from 'next/link'
+import RouteGuard from "@/components/RouteGuard"
 
 export default function ReportsIndexPage() {
   const sections = [
@@ -10,7 +11,8 @@ export default function ReportsIndexPage() {
   ]
 
   return (
-    <div className="flex flex-col h-full">
+    <RouteGuard requireAdmin>
+      <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
         <h1 className="text-xl font-semibold text-gray-900">Reports</h1>
       </div>
@@ -24,5 +26,6 @@ export default function ReportsIndexPage() {
         ))}
       </div>
     </div>
+    </RouteGuard>
   )
 }

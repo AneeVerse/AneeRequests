@@ -5,15 +5,7 @@ export interface Client {
   id?: string
   name: string
   email?: string
-  client_company_id?: ObjectId
-  created_at: Date
-  updated_at: Date
-}
-
-export interface ClientCompany {
-  _id?: ObjectId
-  id?: string
-  name: string
+  client_company_name?: string
   created_at: Date
   updated_at: Date
 }
@@ -57,6 +49,6 @@ export interface ActivityLogEntry {
 }
 
 export interface RequestWithRelations extends Omit<Request, 'client_id' | 'service_catalog_item_id'> {
-  client?: Client & { client_company?: ClientCompany }
+  client?: Client
   service_catalog_item?: ServiceCatalogItem
 }
