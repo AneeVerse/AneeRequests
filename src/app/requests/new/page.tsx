@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronDown } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
+import SimpleTextEditor from "@/components/SimpleTextEditor"
 
 interface Client {
   id: string
@@ -327,45 +328,14 @@ export default function CreateRequestPage() {
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Description <span className="text-red-500">(Required)</span>
                   </label>
-                  <div className="border border-gray-300 rounded-md">
-                    {/* Rich Text Editor Toolbar */}
-                    <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-200 bg-gray-50">
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 12a1 1 0 011-1h8a1 1 0 110 2H4a1 1 0 01-1-1z" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded font-bold">B</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded italic">I</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded underline">U</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded line-through">S</button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-                        </svg>
-                      </button>
-                      <button className="p-1 text-gray-600 hover:bg-gray-200 rounded">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2M7 4h6M7 4H6a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-1" />
-                        </svg>
-                      </button>
-                    </div>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full px-3 py-2 min-h-32 border-0 focus:outline-none focus:ring-0 resize-none text-gray-900"
-                      placeholder="I am looking to create a display for my website..."
-                    />
+                  <div className="min-h-32">
+                                         <SimpleTextEditor
+                       onSend={(content) => setDescription(content)}
+                       placeholder="I am looking to create a display for my website..."
+                       disabled={false}
+                       sending={false}
+                       variant="form"
+                     />
                   </div>
                 </div>
               </div>

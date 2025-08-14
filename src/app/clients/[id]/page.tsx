@@ -57,7 +57,7 @@ export default function ClientDetailPage() {
       <RouteGuard requireAdmin>
         <div className="flex items-center justify-center h-full">
           <div className="text-gray-500">Loading...</div>
-        </div>
+          </div>
       </RouteGuard>
     )
   }
@@ -67,7 +67,7 @@ export default function ClientDetailPage() {
       <RouteGuard requireAdmin>
         <div className="flex items-center justify-center h-full">
           <div className="text-red-500">{error || 'Client not found'}</div>
-        </div>
+          </div>
       </RouteGuard>
     )
   }
@@ -75,26 +75,26 @@ export default function ClientDetailPage() {
   return (
     <RouteGuard requireAdmin>
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/clients"
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/clients"
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-            >
+          >
               <ArrowLeft size={16} />
               Back to Clients
-            </Link>
-            <h1 className="text-xl font-semibold text-gray-900">Client Details</h1>
-          </div>
+          </Link>
+          <h1 className="text-xl font-semibold text-gray-900">Client Details</h1>
+        </div>
           <Link
             href={`/clients/${clientId}/edit`}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
-          >
-            <Edit size={16} />
-            Edit Client
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                >
+                  <Edit size={16} />
+                  Edit Client
           </Link>
-        </div>
+            </div>
 
         {/* Content */}
         <div className="flex-1 p-6">
@@ -104,32 +104,32 @@ export default function ClientDetailPage() {
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Client Name</h2>
                 <p className="text-gray-700">{client.name}</p>
-              </div>
-
+                  </div>
+                  
               {/* Email */}
               {client.email && (
-                <div>
+                  <div>
                   <h2 className="text-lg font-medium text-gray-900 mb-2">Email</h2>
                   <p className="text-gray-700">{client.email}</p>
-                </div>
+                  </div>
               )}
 
               {/* Company */}
               {client.client_company_name && (
-                <div>
+                  <div>
                   <h2 className="text-lg font-medium text-gray-900 mb-2">Company/Organization</h2>
                   <p className="text-gray-700">{client.client_company_name}</p>
-                </div>
+              </div>
               )}
 
               {/* Created Date */}
-              <div>
+                  <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Created</h2>
                 <p className="text-gray-700">{formatDate(client.created_at)}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
       </div>
     </RouteGuard>
   )

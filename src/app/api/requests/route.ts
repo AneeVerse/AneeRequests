@@ -22,18 +22,28 @@ export async function GET(request: NextRequest) {
     
     const requests = await Request
       .find(query)
-      .populate('client_id')
+      .populate({
+        path: 'client_id',
+        model: 'Client'
+      })
       .sort({ created_at: -1 })
       .lean<PopulatedRequest[]>()
 
-    const requestsWithIds = requests.map((request) => ({
-      ...request,
-      id: String(request._id),
-      client: request.client_id ? {
-        ...(request.client_id as Record<string, unknown>),
-        id: String((request.client_id as { _id: unknown })._id)
-      } : undefined
-    }))
+    const requestsWithIds = requests.map((request) => {
+      const clientData = request.client_id as Record<string, unknown> | undefined;
+      
+      return {
+        ...request,
+        id: String(request._id),
+        client: clientData ? {
+          ...clientData,
+          id: String((clientData as { _id: unknown })._id),
+          client_company: clientData.client_company_name ? {
+            name: clientData.client_company_name as string
+          } : undefined
+        } : undefined
+      };
+    })
 
     return NextResponse.json(requestsWithIds)
   } catch (error) {

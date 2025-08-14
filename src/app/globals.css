@@ -44,6 +44,66 @@ body {
   min-height: 80px;
   max-height: 200px;
   overflow-y: auto;
+  color: #111827; /* text-gray-900 */
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ProseMirror p {
+  margin: 0.5rem 0;
+  color: #111827; /* text-gray-900 */
+}
+
+.ProseMirror p:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+.ProseMirror.ProseMirror-focused {
+  outline: none;
+}
+
+/* Placeholder styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af; /* text-gray-400 */
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+/* Link styles */
+.ProseMirror a {
+  color: #2563eb; /* text-blue-600 */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ProseMirror a:hover {
+  color: #1d4ed8; /* text-blue-800 */
+}
+
+/* Bullet list styles */
+.ProseMirror ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0;
+  color: #111827; /* text-gray-900 */
+}
+
+.ProseMirror ul li::marker {
+  color: #6b7280; /* text-gray-500 */
 }
 
 /* Prose styles for rich text content */

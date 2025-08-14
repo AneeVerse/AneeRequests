@@ -40,6 +40,9 @@ const requestSchema = new mongoose.Schema({
   status: { type: String, enum: ['submitted', 'in_progress', 'in_review', 'completed', 'cancelled'], default: 'submitted' },
   priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
   client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
+  service_catalog_item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCatalogItem' },
+  assigned_to: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  org_id: { type: String, default: 'default' },
   due_date: Date,
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }

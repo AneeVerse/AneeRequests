@@ -103,3 +103,66 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete request' }, { status: 500 })
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  try {
+    await connectDB()
+    const body = await request.json()
+    const { status, priority, due_date, assigned_to } = body
+
+    // Validate the update data
+    const updateData: Record<string, unknown> = {}
+    
+    if (status && ['submitted', 'in_progress', 'in_review', 'completed', 'cancelled'].includes(status)) {
+      updateData.status = status
+    }
+    
+    if (priority && ['low', 'medium', 'high', 'urgent'].includes(priority)) {
+      updateData.priority = priority
+    }
+    
+    if (due_date) {
+      updateData.due_date = new Date(due_date)
+    }
+    
+    if (assigned_to !== undefined) {
+      updateData.assigned_to = assigned_to || null
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ 
+        error: 'No valid fields to update' 
+      }, { status: 400 })
+    }
+
+    updateData.updated_at = new Date()
+
+    const updatedRequest = await RequestModel.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('client_id')
+
+    if (!updatedRequest) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+    }
+
+    const withIds = {
+      ...updatedRequest.toObject(),
+      id: String(updatedRequest._id),
+      client: updatedRequest.client_id ? {
+        ...(updatedRequest.client_id as Record<string, unknown>),
+        id: String((updatedRequest.client_id as { _id: unknown })._id)
+      } : undefined
+    }
+
+    return NextResponse.json(withIds)
+  } catch (error) {
+    console.error('Error updating request:', error)
+    return NextResponse.json({ error: 'Failed to update request' }, { status: 500 })
+  }
+}

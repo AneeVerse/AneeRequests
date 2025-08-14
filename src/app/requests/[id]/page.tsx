@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
-import { ChevronDown, User, FileText, Trash2 } from "lucide-react"
+import { ChevronDown, User, FileText, Trash2, Edit2 } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import SimpleTextEditor from "@/components/SimpleTextEditor"
 
@@ -58,6 +58,8 @@ export default function RequestDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deletingMessage, setDeletingMessage] = useState<string | null>(null)
+  const [editingMessage, setEditingMessage] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -149,7 +151,29 @@ export default function RequestDetailPage() {
   const renderMarkdownContent = (content: string) => {
     if (!content) return ''
     
-    // Convert markdown to HTML
+    // If content contains HTML tags, parse them properly
+    if (content.includes('<')) {
+      // Handle common HTML tags
+      let html = content
+      
+      // Convert <p> tags to proper spacing
+      html = html.replace(/<p>/g, '')
+      html = html.replace(/<\/p>/g, '<br>')
+      
+      // Handle bold text: <strong>text</strong> -> <strong>text</strong>
+      // Handle italic text: <em>text</em> -> <em>text</em>
+      // Handle underline text: <u>text</u> -> <u>text</u>
+      
+      // Handle links: <a href="url">text</a> -> <a href="url">text</a>
+      
+      // Handle bullet lists: <li>item</li> -> <li>item</li>
+      
+      // Handle numbered lists: <li>item</li> -> <li>item</li>
+      
+      return html
+    }
+    
+    // Convert markdown to HTML (for backward compatibility)
     let html = content
     
     // Handle bold text: **text** -> <strong>text</strong>
@@ -177,6 +201,58 @@ export default function RequestDetailPage() {
     html = html.replace(/\n/g, '<br>')
     
     return html
+  }
+
+  const handleFieldUpdate = async (field: string, value: string) => {
+    if (!request) return
+
+    try {
+      const response = await fetch(`/api/requests/${request.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          [field]: value
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update ${field}`)
+      }
+
+      const updatedRequest = await response.json()
+      setRequest(updatedRequest)
+
+      // Log the activity
+      const activityResponse = await fetch(`/api/requests/${request.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'field_updated',
+          description: `${field.replace('_', ' ')} updated to ${value}`,
+          entity_type: 'field_update',
+          metadata: {
+            user_id: user?.id,
+            user_name: user?.name,
+            user_role: user?.role,
+            field,
+            old_value: request[field as keyof Request],
+            new_value: value
+          }
+        }),
+      })
+
+      if (activityResponse.ok) {
+        const newActivity = await activityResponse.json()
+        setActivities(prev => [...prev, newActivity])
+      }
+    } catch (err) {
+      console.error(`Error updating ${field}:`, err)
+      setError(`Failed to update ${field}`)
+    }
   }
 
   const handleSendMessage = async (content: string) => {
@@ -245,6 +321,58 @@ export default function RequestDetailPage() {
     }
   }
 
+  const handleEditMessage = async (activityId: string) => {
+    if (!request) return
+    
+    try {
+      // Convert plain text to HTML format for consistency with rich text editor
+      const htmlContent = `<p>${editContent.trim()}</p>`
+      
+      const response = await fetch(`/api/requests/${request.id}/activity/${activityId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: htmlContent
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update message')
+      }
+      
+      const updatedActivity = await response.json()
+      
+      // Update the message in the local state
+      setActivities(prev => prev.map(activity => 
+        activity.id === activityId 
+          ? { ...activity, description: updatedActivity.description }
+          : activity
+      ))
+      
+      // Reset edit state
+      setEditingMessage(null)
+      setEditContent("")
+    } catch (err) {
+      console.error('Error updating message:', err)
+      setError('Failed to update message')
+    }
+  }
+
+  const startEditingMessage = (activity: ActivityLogEntry) => {
+    setEditingMessage(activity.id)
+    // Convert HTML content to plain text for editing
+    const plainText = activity.description ? 
+      activity.description.replace(/<[^>]*>/g, '') : ""
+    setEditContent(plainText)
+  }
+
+  const cancelEditingMessage = () => {
+    setEditingMessage(null)
+    setEditContent("")
+  }
+
   const handleDeleteRequest = async () => {
     if (!request) return
     
@@ -273,17 +401,27 @@ export default function RequestDetailPage() {
   const isClient = user?.role === 'client'
   
   // Check if user can send messages
-  // Admin can always send messages
-  // Client can send messages if they own the request OR if they're impersonating
-  const canSendMessage = isAdmin || (
-    isClient && (
-      request?.client_id === user?.id ||
-      user?.id?.startsWith('impersonated-') // Allow impersonated users
-    )
-  )
+  // Allow all authenticated users to send messages for now
+  // This can be restricted later if needed
+  const canSendMessage = !!user // Any authenticated user can send messages
+  
+  // Alternative logic if you want to restrict based on ownership:
+  // const canSendMessage = isAdmin || (
+  //   isClient && (
+  //     request?.client_id === user?.id ||
+  //     user?.id?.startsWith('impersonated-') // Allow impersonated users
+  //   )
+  // )
 
   // Check if user can delete a specific message
   const canDeleteMessage = (activity: ActivityLogEntry) => {
+    if (isAdmin) return true
+    if (activity.action !== 'message_posted') return false
+    return activity.metadata?.user_id === user?.id
+  }
+
+  // Check if user can edit a specific message
+  const canEditMessage = (activity: ActivityLogEntry) => {
     if (isAdmin) return true
     if (activity.action !== 'message_posted') return false
     return activity.metadata?.user_id === user?.id
@@ -429,25 +567,62 @@ export default function RequestDetailPage() {
                                   <span className="text-sm text-gray-500">{formatDate(activity.created_at)}</span>
                                 </div>
                                 {canDeleteMessage(activity) && (
-                                  <button
-                                    onClick={() => handleDeleteMessage(activity.id)}
-                                    disabled={deletingMessage === activity.id}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                    title="Delete message"
-                                  >
-                                    {deletingMessage === activity.id ? (
-                                      <div className="w-4 h-4 animate-spin border-2 border-red-600 border-t-transparent rounded-full"></div>
-                                    ) : (
-                                      <Trash2 size={14} />
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {canEditMessage(activity) && (
+                                      <button
+                                        onClick={() => startEditingMessage(activity)}
+                                        className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                        title="Edit message"
+                                      >
+                                        <Edit2 size={14} />
+                                      </button>
                                     )}
-                                  </button>
+                                    <button
+                                      onClick={() => handleDeleteMessage(activity.id)}
+                                      disabled={deletingMessage === activity.id}
+                                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                      title="Delete message"
+                                    >
+                                      {deletingMessage === activity.id ? (
+                                        <div className="w-4 h-4 animate-spin border-2 border-red-600 border-t-transparent rounded-full"></div>
+                                      ) : (
+                                        <Trash2 size={14} />
+                                      )}
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                               <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                                <div 
-                                  className="text-gray-700 prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{ __html: renderMarkdownContent(activity.description || '') }}
-                                />
+                                {editingMessage === activity.id ? (
+                                  <div className="space-y-3">
+                                    <textarea
+                                      value={editContent}
+                                      onChange={(e) => setEditContent(e.target.value)}
+                                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-black"
+                                      rows={3}
+                                      placeholder="Edit your message..."
+                                    />
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => handleEditMessage(activity.id)}
+                                        className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={cancelEditingMessage}
+                                        className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="text-gray-700 prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: renderMarkdownContent(activity.description || '') }}
+                                  />
+                                )}
                               </div>
                             </div>
                           </div>
@@ -520,8 +695,16 @@ export default function RequestDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Status</span>
                 <div className="relative">
-                  <select className={`text-sm border-0 bg-transparent focus:ring-0 pr-6 capitalize ${getStatusColor(request.status)}`}>
-                    <option>{request.status.replace('_', ' ')}</option>
+                  <select 
+                    value={request.status}
+                    onChange={(e) => handleFieldUpdate('status', e.target.value)}
+                    className={`text-sm border-0 bg-transparent focus:ring-0 pr-6 capitalize cursor-pointer ${getStatusColor(request.status)}`}
+                  >
+                    <option value="submitted">Submitted</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="in_review">In Review</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                   <ChevronDown size={12} className="absolute right-0 top-1 text-gray-400 pointer-events-none" />
                 </div>
@@ -529,9 +712,18 @@ export default function RequestDetailPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Priority</span>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
-                  <span className="text-sm text-gray-500 capitalize">{request.priority}</span>
+                <div className="relative">
+                  <select 
+                    value={request.priority}
+                    onChange={(e) => handleFieldUpdate('priority', e.target.value)}
+                    className="text-sm border-0 bg-transparent focus:ring-0 pr-6 capitalize cursor-pointer text-gray-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-0 top-1 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
@@ -545,9 +737,13 @@ export default function RequestDetailPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Due Date</span>
-                <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <span>{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
-                  <ChevronDown size={12} />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="date"
+                    value={request.due_date ? new Date(request.due_date).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleFieldUpdate('due_date', e.target.value)}
+                    className="text-sm border-0 bg-transparent focus:ring-0 cursor-pointer text-gray-500"
+                  />
                 </div>
               </div>
 
