@@ -15,7 +15,7 @@ interface TeamMember {
 }
 
 export default function TeamPage() {
-  const { user, impersonateClient } = useAuth()
+  const { user, impersonateTeamMember } = useAuth()
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -178,20 +178,14 @@ export default function TeamPage() {
     }
   }
 
-  const handleImpersonate = async (member: TeamMember) => {
-    if (!confirm(`Are you sure you want to impersonate ${member.name}?`)) {
-      return
-    }
-
-    try {
-      // For team members, we'll use a similar approach to client impersonation
-      // You may need to adjust this based on your authentication system
-      // If you have an impersonate function for team members, use it here
-      alert(`Impersonating ${member.name} - this functionality can be customized based on your needs`)
-    } catch (err) {
-      console.error('Error impersonating team member:', err)
-      alert('Failed to impersonate team member')
-    }
+  const handleImpersonate = (member: TeamMember) => {
+    if (user?.role !== 'admin') return
+    impersonateTeamMember(
+      member.id,
+      member.name,
+      member.email,
+      (member.role as 'admin' | 'member' | 'viewer')
+    )
   }
 
   const formatDate = (dateString: string) => {

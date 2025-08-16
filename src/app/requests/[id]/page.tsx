@@ -541,7 +541,10 @@ export default function RequestDetailPage() {
                                 {activity.description && (
                                   <div>
                                     <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                                    <p className="text-gray-700">{request.description}</p>
+                                    <div
+                                      className="text-gray-700 prose prose-sm max-w-none"
+                                      dangerouslySetInnerHTML={{ __html: request.description || '' }}
+                                    />
                                   </div>
                                 )}
                               </div>

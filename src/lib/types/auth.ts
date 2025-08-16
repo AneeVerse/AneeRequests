@@ -15,7 +15,14 @@ export interface ClientUser {
   clientCompany?: string
 }
 
-export type User = AdminUser | ClientUser
+export interface TeamUser {
+  id: string
+  email: string
+  name: string
+  role: 'admin' | 'member' | 'viewer'
+}
+
+export type User = AdminUser | ClientUser | TeamUser
 
 export interface AuthState {
   user: User | null

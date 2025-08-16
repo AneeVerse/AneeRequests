@@ -2,12 +2,11 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { AuthState, User, AdminUser, ClientUser, LoginCredentials, ChangePasswordData } from '../types/auth'
 
-
-
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; message: string }>
   logout: () => void
   impersonateClient: (clientId: string, clientName: string, clientEmail: string, clientCompany?: string) => void
+  impersonateTeamMember: (memberId: string, memberName: string, memberEmail: string, memberRole?: 'admin' | 'member' | 'viewer') => void
   stopImpersonation: () => void
   changePassword: (data: ChangePasswordData) => Promise<{ success: boolean; message: string }>
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; message: string }>
@@ -24,6 +23,7 @@ type AuthAction =
   | { type: 'LOGIN_SUCCESS'; payload: User }
   | { type: 'LOGOUT' }
   | { type: 'IMPERSONATE_CLIENT'; payload: { clientUser: ClientUser; originalUser: AdminUser } }
+  | { type: 'IMPERSONATE_USER'; payload: { user: User; originalUser: AdminUser } }
   | { type: 'STOP_IMPERSONATION' }
   | { type: 'CHANGE_PASSWORD'; payload: string }
 
@@ -31,86 +31,47 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload }
-    
     case 'LOGIN_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        isLoading: false,
-        impersonating: false,
-        originalUser: undefined
-      }
-    
+      return { ...state, user: action.payload, isAuthenticated: true, isLoading: false, impersonating: false, originalUser: undefined }
     case 'LOGOUT':
-      return {
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        impersonating: false,
-        originalUser: undefined
-      }
-    
+      return { user: null, isAuthenticated: false, isLoading: false, impersonating: false, originalUser: undefined }
     case 'IMPERSONATE_CLIENT':
-      return {
-        ...state,
-        user: action.payload.clientUser,
-        impersonating: true,
-        originalUser: action.payload.originalUser
-      }
-    
+      return { ...state, user: action.payload.clientUser, impersonating: true, originalUser: action.payload.originalUser }
+    case 'IMPERSONATE_USER':
+      return { ...state, user: action.payload.user, impersonating: true, originalUser: action.payload.originalUser }
     case 'STOP_IMPERSONATION':
-      return {
-        ...state,
-        user: state.originalUser || null,
-        impersonating: false,
-        originalUser: undefined
-      }
-    
+      return { ...state, user: state.originalUser || null, impersonating: false, originalUser: undefined }
     case 'CHANGE_PASSWORD':
-      // In a real app, you'd update the password in the database
       return state
-    
     default:
       return state
   }
 }
 
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  impersonating: false
-}
+const initialState: AuthState = { user: null, isAuthenticated: false, isLoading: true, impersonating: false }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // Check for existing session on mount
   useEffect(() => {
     const checkAuth = () => {
       const savedUser = localStorage.getItem('auth_user')
       const savedImpersonation = localStorage.getItem('auth_impersonation')
-      
       if (savedUser) {
         const user = JSON.parse(savedUser) as User
         dispatch({ type: 'LOGIN_SUCCESS', payload: user })
-        
         if (savedImpersonation) {
           const impersonation = JSON.parse(savedImpersonation)
-          dispatch({ 
-            type: 'IMPERSONATE_CLIENT', 
-            payload: {
-              clientUser: impersonation.clientUser,
-              originalUser: impersonation.originalUser
-            }
-          })
+          if (impersonation.user) {
+            dispatch({ type: 'IMPERSONATE_USER', payload: { user: impersonation.user, originalUser: impersonation.originalUser } })
+          } else if (impersonation.clientUser) {
+            dispatch({ type: 'IMPERSONATE_CLIENT', payload: { clientUser: impersonation.clientUser, originalUser: impersonation.originalUser } })
+          }
         }
       } else {
         dispatch({ type: 'SET_LOADING', payload: false })
       }
     }
-
     checkAuth()
   }, [])
 
@@ -192,6 +153,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     localStorage.setItem('auth_impersonation', JSON.stringify(impersonationData))
     dispatch({ type: 'IMPERSONATE_CLIENT', payload: impersonationData })
+  }
+
+  const impersonateTeamMember = (memberId: string, memberName: string, memberEmail: string, memberRole: 'admin' | 'member' | 'viewer' = 'member') => {
+    if (state.user?.role !== 'admin') return
+
+    const user: User = {
+      id: `impersonated-team-${memberId}`,
+      email: memberEmail,
+      name: memberName,
+      role: memberRole
+    } as User
+
+    const impersonationData = {
+      user,
+      originalUser: state.user as AdminUser
+    }
+
+    localStorage.setItem('auth_impersonation', JSON.stringify(impersonationData))
+    dispatch({ type: 'IMPERSONATE_USER', payload: impersonationData })
   }
 
   const stopImpersonation = () => {
@@ -366,6 +346,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     impersonateClient,
+    impersonateTeamMember,
     stopImpersonation,
     changePassword,
     register,

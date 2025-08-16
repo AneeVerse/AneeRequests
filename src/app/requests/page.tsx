@@ -163,6 +163,19 @@ export default function RequestsPage() {
     }
   }
 
+  // Render-friendly preview: strip HTML tags and decode common entities
+  const getDescriptionPreview = (value: string | undefined) => {
+    if (!value) return ''
+    const withoutTags = value.replace(/<[^>]*>/g, ' ')
+    const decoded = withoutTags
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+    return decoded.replace(/\s+/g, ' ').trim()
+  }
+
   const isAdmin = user?.role === 'admin'
   const isClient = user?.role === 'client'
   const canCreateRequest = isAdmin || isClient
@@ -366,7 +379,7 @@ export default function RequestsPage() {
             <div className="col-span-3 min-w-[200px]">
               <div className="font-medium text-gray-900 mb-1">{request.title}</div>
               <div className="text-gray-500 text-xs line-clamp-1">
-                {request.description || 'No description'}
+                {getDescriptionPreview(request.description) || 'No description'}
               </div>
             </div>
             {isAdmin && (
