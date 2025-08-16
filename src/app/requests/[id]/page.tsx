@@ -49,7 +49,7 @@ export default function RequestDetailPage() {
   const { user } = useAuth()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
-  const [activeTab, setActiveTab] = useState("activity")
+  
   const [request, setRequest] = useState<Request | null>(null)
   const [activities, setActivities] = useState<ActivityLogEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,6 +137,7 @@ export default function RequestDetailPage() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent': return 'bg-red-500'
@@ -398,6 +399,7 @@ export default function RequestDetailPage() {
   }
 
   const isAdmin = user?.role === 'admin'
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isClient = user?.role === 'client'
   
   // Check if user can send messages
@@ -459,65 +461,10 @@ export default function RequestDetailPage() {
             <h2 className="text-2xl font-bold text-gray-900">{request.title}</h2>
           </div>
 
-          {/* Tabs */}
-          <div className="border-b border-gray-200 px-6">
-            <div className="flex gap-8 overflow-x-auto">
-              <button
-                onClick={() => setActiveTab("activity")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === "activity"
-                    ? "text-purple-600 border-purple-600"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                Activity
-              </button>
-              <button
-                onClick={() => setActiveTab("details")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === "details"
-                    ? "text-purple-600 border-purple-600"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                Details
-              </button>
-              <button
-                onClick={() => setActiveTab("files")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === "files"
-                    ? "text-purple-600 border-purple-600"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                Files
-              </button>
-              <button
-                onClick={() => setActiveTab("checklists")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === "checklists"
-                    ? "text-purple-600 border-purple-600"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                Checklists
-              </button>
-              <button
-                onClick={() => setActiveTab("timesheets")}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  activeTab === "timesheets"
-                    ? "text-purple-600 border-purple-600"
-                    : "text-gray-500 border-transparent hover:text-gray-700"
-                }`}
-              >
-                Timesheets
-              </button>
-            </div>
-          </div>
+          
 
-          {/* Tab Content */}
+          {/* Activity */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {activeTab === "activity" && (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Chat Messages Area */}
                 <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style={{ maxHeight: 'calc(100vh - 500px)', minHeight: '300px' }}>
@@ -663,14 +610,6 @@ export default function RequestDetailPage() {
                   />
                 </div>
               </div>
-            )}
-
-            {/* Other tabs content (placeholder) */}
-            {activeTab !== "activity" && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">Content for {activeTab} tab will be displayed here.</p>
-              </div>
-            )}
           </div>
         </div>
 

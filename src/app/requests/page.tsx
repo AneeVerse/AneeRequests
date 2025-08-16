@@ -125,7 +125,7 @@ export default function RequestsPage() {
         day: 'numeric',
         year: 'numeric'
       })
-    } catch (error) {
+    } catch {
       return 'Invalid date'
     }
   }
@@ -137,7 +137,7 @@ export default function RequestsPage() {
         return ''
       }
       return date.toISOString().split('T')[0]
-    } catch (error) {
+    } catch {
       return ''
     }
   }

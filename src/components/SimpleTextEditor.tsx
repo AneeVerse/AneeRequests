@@ -188,6 +188,7 @@ export default function SimpleTextEditor({
   }, [editor, variant])
 
   // Add state to force re-renders for button updates
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [forceUpdate, setForceUpdate] = useState(false)
 
   if (!isClient || !editor) {

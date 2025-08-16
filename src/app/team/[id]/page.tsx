@@ -25,7 +25,7 @@ interface ServiceRequest {
 
 export default function TeamMemberDetailPage() {
   const params = useParams()
-  const { user, impersonateClient } = useAuth()
+  const { impersonateTeamMember } = useAuth()
   const memberId = params.id as string
   
   const [member, setMember] = useState<TeamMember | null>(null)
@@ -92,24 +92,9 @@ export default function TeamMemberDetailPage() {
 
   const handleImpersonate = async () => {
     if (!member) return
-    
-    if (!confirm(`Are you sure you want to impersonate ${member.name}?`)) {
-      return
-    }
 
     try {
-      // Use the existing impersonateClient function with correct parameters
-      if (impersonateClient) {
-        impersonateClient(
-          member.id,
-          member.name,
-          member.email,
-          member.role // Using role as clientCompany parameter
-        )
-        alert(`Now impersonating ${member.name}`)
-      } else {
-        alert(`Impersonating ${member.name} - this functionality can be customized based on your needs`)
-      }
+      impersonateTeamMember(member.id, member.name, member.email, member.role as 'admin'|'member'|'viewer')
       
       setShowActionMenu(false)
     } catch (err) {

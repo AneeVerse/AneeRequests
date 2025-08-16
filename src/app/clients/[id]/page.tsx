@@ -652,7 +652,7 @@ export default function ClientDetailPage() {
                   <div>
                     <h3 className="text-sm font-medium text-gray-900 mb-2">Change Password</h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Change the client's login password. This will immediately log them out of all sessions.
+                      Change the client&apos;s login password. This will immediately log them out of all sessions.
                     </p>
                     <button
                       onClick={() => setShowPasswordModal(true)}
