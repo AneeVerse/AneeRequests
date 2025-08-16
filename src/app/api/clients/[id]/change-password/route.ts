@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { User } from '@/lib/models/schemas'
+import { User, Client } from '@/lib/models/schemas'
 import bcrypt from 'bcryptjs'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     await connectDB()
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
     
     if (!body.password || body.password.length < 6) {
@@ -22,10 +22,26 @@ export async function POST(
     // Hash the new password
     const hashedPassword = await bcrypt.hash(body.password, 12)
     
+    // Find the associated user by client id
+    const client = await Client.findById(id)
+    let userIdToUpdate = client?.user_id
+
+    if (!userIdToUpdate) {
+      const userByClient = await User.findOne({ client_id: id }).select('_id')
+      userIdToUpdate = userByClient?._id
+    }
+
+    if (!userIdToUpdate) {
+      return NextResponse.json(
+        { error: 'Linked user not found for this client' },
+        { status: 404 }
+      )
+    }
+
     // Update the user's password
     const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { 
+      userIdToUpdate,
+      {
         password: hashedPassword,
         updated_at: new Date()
       },
