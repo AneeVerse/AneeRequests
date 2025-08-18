@@ -57,12 +57,21 @@ export default function RequestsPage() {
     try {
       setLoading(true)
       let url = '/api/requests'
-      // If the logged-in user is a team member (impersonated team member in this app),
-      // restrict to assigned requests
-      if (user?.id?.startsWith('impersonated-team-')) {
-        const memberId = user.id.replace('impersonated-team-', '')
-        url = `/api/requests?team_member_id=${encodeURIComponent(memberId)}`
+      
+      // If the logged-in user is a team member, restrict to assigned requests
+      if (user?.role === 'member' || user?.role === 'viewer') {
+        let memberId = user?.id
+        
+        // Handle impersonated team members
+        if ((user?.id || '').startsWith('impersonated-team-')) {
+          memberId = (user?.id || '').replace('impersonated-team-', '')
+        }
+        
+        if (memberId) {
+          url = `/api/requests?team_member_id=${encodeURIComponent(memberId)}`
+        }
       }
+      
       const response = await fetch(url)
       
       if (!response.ok) {
@@ -78,7 +87,7 @@ export default function RequestsPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user?.role, user?.id])
 
   const handleFieldUpdate = async (requestId: string, field: string, value: string) => {
     try {

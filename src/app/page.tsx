@@ -78,13 +78,20 @@ export default function DashboardPage() {
           team: 0
         })
         setRecentRequests(clientRequests)
-      } else {
+      } else if (user?.role === 'member' || user?.role === 'viewer') {
         // Team members: show only their assigned requests
         let url = '/api/requests'
+        let memberId = user?.id
+        
+        // Handle impersonated team members
         if ((user?.id || '').startsWith('impersonated-team-')) {
-          const memberId = (user?.id || '').replace('impersonated-team-', '')
+          memberId = (user?.id || '').replace('impersonated-team-', '')
+        }
+        
+        if (memberId) {
           url = `/api/requests?team_member_id=${encodeURIComponent(memberId)}`
         }
+        
         const response = await fetch(url)
         if (!response.ok) {
           throw new Error('Failed to fetch requests data')
@@ -99,6 +106,16 @@ export default function DashboardPage() {
           team: 0
         })
         setRecentRequests(assigned)
+      } else {
+        // Fallback for any other roles
+        setStats({
+          revenue: 0,
+          clients: 0,
+          requests: 0,
+          reviews: 0,
+          team: 0
+        })
+        setRecentRequests([])
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
