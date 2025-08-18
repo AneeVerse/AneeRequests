@@ -208,6 +208,62 @@ export class AuthService {
     return { message: 'Password changed successfully' }
   }
 
+  // Admin utility: generate and email a temporary password
+  static async adminSendTemporaryPassword(email: string) {
+    await connectDB()
+
+    let user = await User.findOne({ email })
+    let isNewlyCreated = false
+    if (!user) {
+      // Create a verified client account if user doesn't exist
+      isNewlyCreated = true
+      user = new User({
+        email,
+        password: 'placeholder', // will be replaced below after hashing temp password
+        name: email.split('@')[0] || 'User',
+        role: 'client',
+        is_verified: true
+      })
+    }
+
+    // Generate a strong temporary password
+    const tempPassword = crypto.randomBytes(6).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
+
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(tempPassword, saltRounds)
+
+    user.password = hashedPassword
+    await user.save()
+
+    // Try to email the temporary password
+    let emailed = true
+    try {
+      await this.sendTemporaryPasswordEmail(email, tempPassword, user.name, isNewlyCreated)
+    } catch (emailError) {
+      console.error('Failed to send temporary password email:', emailError)
+      emailed = false
+    }
+
+    const response: { success: boolean; message: string; tempPassword?: string } = {
+      success: true,
+      message: emailed
+        ? (isNewlyCreated
+            ? 'Account created and password sent to the email.'
+            : 'Password sent to the user email.')
+        : (isNewlyCreated
+            ? 'Account created. Password generated; email not configured or failed.'
+            : 'Password generated. Email not configured or failed; see server logs or use the returned value.')
+    }
+
+    // If email is not configured (dev), return the temp password so admin can share securely
+    if (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'your-email@gmail.com' || !emailed) {
+      response.tempPassword = tempPassword
+      console.log(`Credentials — Email: ${email}, Password: ${tempPassword}`)
+    }
+
+    return response
+  }
+
   // Create client account (admin function)
   static async createClientAccount(clientId: string, email: string, password: string) {
     await connectDB()
@@ -312,6 +368,33 @@ export class AuthService {
           <p>This link will expire in 1 hour.</p>
           <p>If you didn't request this password reset, please ignore this email.</p>
           <p>Best regards,<br>The AneeRequests Team</p>
+        </div>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+  }
+
+  // Send credentials email (admin-triggered)
+  private static async sendTemporaryPasswordEmail(email: string, tempPassword: string, name: string, isNewlyCreated: boolean) {
+    if (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'your-email@gmail.com') {
+      console.log('Email configuration not set up. Skipping temporary password email.')
+      return
+    }
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Your AneeRequests account credentials',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #7c3aed;">Account Credentials</h2>
+          <p>Hi ${name || 'there'},</p>
+          ${isNewlyCreated ? '<p>Your account has been created for you.</p>' : '<p>Your password has been updated.</p>'}
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Password:</strong> ${tempPassword}</p>
+          <p>These credentials are active now. For your security, log in and change this password immediately from Settings → Change Password.</p>
+          <p>Best regards,<br/>AneeRequests</p>
         </div>
       `
     }

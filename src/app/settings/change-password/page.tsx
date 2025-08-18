@@ -2,12 +2,12 @@
 import { useState } from "react"
 
 import { useAuth } from "@/lib/contexts/AuthContext"
-import { ArrowLeft, Eye, EyeOff, Lock } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function ChangePasswordPage() {
 
-  const { changePassword } = useAuth()
+  const { changePassword, requestPasswordReset, adminSendTemporaryPassword, user } = useAuth() as any
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -22,6 +22,13 @@ export default function ChangePasswordPage() {
     newPassword: "",
     confirmPassword: ""
   })
+
+  // Forgot password (send reset link)
+  const [showForgot, setShowForgot] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotMessage, setForgotMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [tempPasswordInfo, setTempPasswordInfo] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,6 +74,42 @@ export default function ChangePasswordPage() {
       ...prev,
       [field]: !prev[field]
     }))
+  }
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotMessage(null)
+    setTempPasswordInfo(null)
+    if (!forgotEmail) {
+      setForgotMessage({ type: "error", text: "Please enter an email address" })
+      return
+    }
+    try {
+      setForgotLoading(true)
+      // If admin, also allow sending a temporary password immediately
+      if (user?.role === 'admin') {
+        const res = await adminSendTemporaryPassword(forgotEmail)
+        if (res.success) {
+          setForgotMessage({ type: 'success', text: res.message })
+          if (res.tempPassword) {
+            setTempPasswordInfo(`Temporary password: ${res.tempPassword}`)
+          }
+        } else {
+          setForgotMessage({ type: 'error', text: res.message })
+        }
+      } else {
+        const result = await requestPasswordReset(forgotEmail)
+        if ((result as any)?.success === false) {
+          setForgotMessage({ type: "error", text: (result as any).message || "Failed to send reset email" })
+        } else {
+          setForgotMessage({ type: "success", text: (result as any)?.message || "Password reset email sent (check console if email is not configured)." })
+        }
+      }
+    } catch (err) {
+      setForgotMessage({ type: "error", text: "Failed to send reset email" })
+    } finally {
+      setForgotLoading(false)
+    }
   }
 
   return (
@@ -227,6 +270,74 @@ export default function ChangePasswordPage() {
                 </button>
               </div>
             </form>
+          </div>
+
+          {/* Forgot password block */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-md font-medium text-gray-900">Forgot your current password?</h3>
+                <p className="text-sm text-gray-600">Send a password reset link to your email.</p>
+              </div>
+              <button
+                onClick={() => setShowForgot(!showForgot)}
+                className="px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700"
+              >
+                {showForgot ? 'Hide' : 'Send reset link'}
+              </button>
+            </div>
+
+            {showForgot && (
+              <form onSubmit={handleForgotSubmit} className="mt-4 space-y-4">
+                {forgotMessage && (
+                  <div className={`${forgotMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'} border rounded-md p-3 text-sm flex items-center gap-2`}>
+                    {forgotMessage.type === 'success' ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                    <span>{forgotMessage.text}</span>
+                  </div>
+                )}
+                {tempPasswordInfo && (
+                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-3 text-sm">
+                    {tempPasswordInfo}
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="forgotEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="forgotEmail"
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="your-email@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgot(false); setForgotMessage(null); setForgotEmail(""); setTempPasswordInfo(null) }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send Reset Email'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Note: If email is not configured, the reset URL will be logged in the server console.</p>
+              </form>
+            )}
           </div>
         </div>
       </div>

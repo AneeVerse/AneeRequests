@@ -52,6 +52,16 @@ export default function ProfileAndAccountPage() {
         body: JSON.stringify(profile)
       })
       if (!res.ok) throw new Error('Failed to save')
+      const data = await res.json()
+
+      // Persist to auth storage so the whole app reflects the new email/name
+      const stored = localStorage.getItem('auth_user')
+      if (stored) {
+        const current = JSON.parse(stored)
+        const updated = { ...current, name: data.user?.name || profile.name, email: data.user?.email || profile.email }
+        localStorage.setItem('auth_user', JSON.stringify(updated))
+      }
+
       await load()
       setSaved(true)
       setTimeout(() => setSaved(false), 1500)

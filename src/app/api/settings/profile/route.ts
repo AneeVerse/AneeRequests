@@ -1,46 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { Profile } from '@/lib/models/schemas'
-
-// For demo, we use a single profile document (first or create)
-
-export async function GET() {
-  try {
-    await connectDB()
-    let profile = await Profile.findOne({}).lean() as unknown as {
-      _id: { toString(): string }
-    } & Record<string, unknown> | null
-    if (!profile) {
-      profile = (await new Profile({ name: 'anees', email: '4d.x.art@gmail.com' }).save()).toObject()
-    }
-    return NextResponse.json({ ...profile, id: profile!._id.toString() })
-  } catch (error) {
-    console.error('Error fetching profile:', error)
-    return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
-  }
-}
+import { User } from '@/lib/models/schemas'
 
 export async function PUT(request: NextRequest) {
   try {
-    await connectDB()
     const body = await request.json()
-    const { name, email, language, avatar_url } = body
+    const { id, name, email } = body || {}
 
-    let profile = await Profile.findOne({})
-    if (!profile) {
-      profile = new Profile({ name: name || 'User', email: email || 'user@example.com' })
+    if (!id) {
+      return NextResponse.json({ error: 'User id is required' }, { status: 400 })
     }
 
-    if (name !== undefined) profile.name = name
-    if (email !== undefined) profile.email = email
-    if (language !== undefined) profile.language = language
-    if (avatar_url !== undefined) profile.avatar_url = avatar_url
+    await connectDB()
 
-    await profile.save()
-    const obj = profile.toObject()
-    return NextResponse.json({ ...obj, id: obj._id.toString() })
+    const user = await User.findById(id)
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    if (typeof name === 'string' && name.trim().length > 0) {
+      user.name = name.trim()
+    }
+
+    if (typeof email === 'string' && email.trim().length > 0 && email !== user.email) {
+      const exists = await User.findOne({ email: email.trim() })
+      if (exists && exists._id.toString() !== id) {
+        return NextResponse.json({ error: 'Email already in use' }, { status: 400 })
+      }
+      user.email = email.trim()
+    }
+
+    await user.save()
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    })
   } catch (error) {
-    console.error('Error updating profile:', error)
+    console.error('Update profile error:', error)
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
   }
 }

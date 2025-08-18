@@ -3,12 +3,13 @@ import { AuthService } from '@/lib/services/authService'
 import { User } from '@/lib/models/schemas'
 import connectDB from '@/lib/mongodb'
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    // Admin credentials
-    const adminEmail = '4d.x.art@gmail.com'
-    const adminPassword = 'Ahmad@Andy@786'
-    const adminName = 'Admin User'
+    const body = await request.json().catch(() => ({}))
+    // Admin credentials (overridable via request body for dynamic setup)
+    const adminEmail = body.email || process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com'
+    const adminPassword = body.password || process.env.DEFAULT_ADMIN_PASSWORD || 'ChangeMe123!'
+    const adminName = body.name || 'Admin User'
 
     // Check if admin already exists
     await connectDB()

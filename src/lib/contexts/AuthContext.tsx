@@ -14,6 +14,7 @@ interface AuthContextType extends AuthState {
   checkEmail: (email: string) => Promise<{ success: boolean; exists: boolean; message: string; user?: { id: string; email: string; name: string; role: string } }>
   resetPasswordDirect: (email: string, oldPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
   adminResetPassword: (email: string, newPassword: string) => Promise<{ success: boolean; message: string }>
+  adminSendTemporaryPassword: (email: string) => Promise<{ success: boolean; message: string; tempPassword?: string }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -341,6 +342,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const adminSendTemporaryPassword = async (email: string): Promise<{ success: boolean; message: string; tempPassword?: string }> => {
+    try {
+      const response = await fetch('/api/auth/admin-send-temp-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send temporary password')
+      }
+
+      return { success: true, message: data.message, tempPassword: data.tempPassword }
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Failed to send temporary password' }
+    }
+  }
+
   const value: AuthContextType = {
     ...state,
     login,
@@ -354,6 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkEmail,
     resetPasswordDirect,
     adminResetPassword
+    ,adminSendTemporaryPassword
   }
 
   return (
