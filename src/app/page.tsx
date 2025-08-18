@@ -83,6 +83,12 @@ export default function DashboardPage() {
   }, [user?.role])
 
   useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login")
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  useEffect(() => {
     if (isAuthenticated) {
       loadDashboardData()
     }
