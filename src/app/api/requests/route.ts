@@ -14,10 +14,14 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('client_id')
+    const teamMemberId = searchParams.get('team_member_id')
     
-    let query = {}
+    let query: Record<string, unknown> = {}
     if (clientId) {
       query = { client_id: clientId }
+    }
+    if (teamMemberId) {
+      query = { ...query, assigned_to: teamMemberId }
     }
     
     const requests = await Request

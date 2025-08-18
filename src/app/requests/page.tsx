@@ -36,6 +36,7 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingField, setEditingField] = useState<{requestId: string, field: string} | null>(null)
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string }[]>([])
 
   // Filter requests based on active tab
   const filterRequests = useCallback(() => {
@@ -55,7 +56,14 @@ export default function RequestsPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/requests')
+      let url = '/api/requests'
+      // If the logged-in user is a team member (impersonated team member in this app),
+      // restrict to assigned requests
+      if (user?.id?.startsWith('impersonated-team-')) {
+        const memberId = user.id.replace('impersonated-team-', '')
+        url = `/api/requests?team_member_id=${encodeURIComponent(memberId)}`
+      }
+      const response = await fetch(url)
       
       if (!response.ok) {
         throw new Error('Failed to fetch requests')
@@ -70,7 +78,7 @@ export default function RequestsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user?.id])
 
   const handleFieldUpdate = async (requestId: string, field: string, value: string) => {
     try {
@@ -108,6 +116,26 @@ export default function RequestsPage() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // Prefetch team members for name lookup / tooltip
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        const res = await fetch('/api/team')
+        if (res.ok) {
+          const data = await res.json()
+          setTeamMembers(data)
+        }
+      } catch {}
+    }
+    loadMembers()
+  }, [])
+
+  const getMemberName = (id?: string) => {
+    if (!id) return undefined
+    const m = teamMembers.find(tm => tm.id === id)
+    return m?.name || m?.email
+  }
 
   // Apply filters whenever requests or activeTab changes
   useEffect(() => {
@@ -179,6 +207,7 @@ export default function RequestsPage() {
   const isAdmin = user?.role === 'admin'
   const isClient = user?.role === 'client'
   const canCreateRequest = isAdmin || isClient
+  const gridColsClass = isAdmin ? 'grid-cols-12' : 'grid-cols-8'
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -267,7 +296,7 @@ export default function RequestsPage() {
       {/* Table */}
       <div className="flex-1 bg-white border-b border-gray-200 overflow-x-auto">
         {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-8 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]">
+        <div className={`grid ${gridColsClass} gap-4 px-8 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
           <div className="col-span-3 flex items-center min-w-[200px]">TITLE</div>
           {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">CLIENT</div>}
           <div className="col-span-2 flex items-center min-w-[120px]">STATUS</div>
@@ -365,19 +394,12 @@ export default function RequestsPage() {
 
         {/* Table Rows */}
         {!loading && !error && filteredRequests.map((request) => (
-          <Link 
+          <div
             key={request.id}
-            href={`/requests/${request.id}`}
-            className="grid grid-cols-12 gap-4 px-8 py-4 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[80px] items-center"
-            onClick={(e) => {
-              // If we're editing a field, prevent navigation
-              if (editingField?.requestId === request.id) {
-                e.preventDefault()
-              }
-            }}
+            className={`grid ${gridColsClass} gap-4 px-8 py-4 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[80px] items-center`}
           >
             <div className="col-span-3 min-w-[200px]">
-              <div className="font-medium text-gray-900 mb-1">{request.title}</div>
+              <Link href={`/requests/${request.id}`} className="font-medium text-gray-900 mb-1 hover:text-violet-700" onClick={(e)=>{ if (editingField?.requestId === request.id) e.preventDefault() }}>{request.title}</Link>
               <div className="text-gray-500 text-xs line-clamp-1">
                 {getDescriptionPreview(request.description) || 'No description'}
               </div>
@@ -402,7 +424,7 @@ export default function RequestsPage() {
                     }}
                     onBlur={() => setEditingField(null)}
                     autoFocus
-                    className="w-full text-sm border border-gray-300 rounded-lg py-2 pl-3 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
+                    className="w-full text-sm text-gray-900 border border-gray-300 rounded-lg py-2 pl-3 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
                   >
                     <option value="submitted">Submitted</option>
                     <option value="in_progress">In Progress</option>
@@ -426,11 +448,27 @@ export default function RequestsPage() {
               )}
             </div>
             {isAdmin && (
-              <div className="col-span-2 flex items-center justify-center min-w-[120px]">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                  <span className="text-gray-500 text-sm">None</span>
-                </div>
+              <div
+                className="col-span-2 flex items-center min-w-[120px]"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setEditingField({ requestId: request.id, field: 'assigned_to' })
+                }}
+              >
+                {editingField?.requestId === request.id && editingField?.field === 'assigned_to' ? (
+                  <AssignDropdown
+                    requestId={request.id}
+                    currentAssignedId={request.assigned_to}
+                    onSelect={(memberId) => handleFieldUpdate(request.id, 'assigned_to', memberId)}
+                    onClose={() => setEditingField(null)}
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 w-full cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors" title={getMemberName(request.assigned_to) || 'Unassigned'}>
+                    <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                    <span className="text-gray-600 text-sm truncate max-w-[140px]">{getMemberName(request.assigned_to) || 'None'}</span>
+                    <span className="ml-auto text-gray-400">+</span>
+                  </div>
+                )}
               </div>
             )}
             <div className="col-span-1 flex items-center min-w-[80px]" onClick={(e) => {
@@ -447,7 +485,7 @@ export default function RequestsPage() {
                     }}
                     onBlur={() => setEditingField(null)}
                     autoFocus
-                    className="w-full text-sm border border-gray-300 rounded-lg py-1.5 pl-2 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
+                    className="w-full text-sm text-gray-900 border border-gray-300 rounded-lg py-1.5 pl-2 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -500,7 +538,7 @@ export default function RequestsPage() {
                 </div>
               )}
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -541,6 +579,66 @@ export default function RequestsPage() {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function AssignDropdown({ requestId, currentAssignedId, onSelect, onClose }: { requestId: string; currentAssignedId?: string; onSelect: (memberId: string) => void; onClose: () => void }) {
+  const [members, setMembers] = useState<{ id: string; name: string; email: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/team')
+        if (!res.ok) throw new Error('Failed to load team members')
+        const data = await res.json()
+        if (!cancelled) setMembers(data)
+      } catch (e) {
+        if (!cancelled) setError('Failed to load team members')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  return (
+    <div className="relative">
+      <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg w-64 p-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-2 pb-2">
+          <div className="text-xs font-medium text-gray-500">Assign to</div>
+          <button className="text-gray-400 hover:text-gray-600" onClick={onClose}>×</button>
+        </div>
+        {loading && <div className="px-2 py-2 text-sm text-gray-500">Loading...</div>}
+        {error && <div className="px-2 py-2 text-sm text-red-600">{error}</div>}
+        {!loading && !error && (
+          <ul className="max-h-60 overflow-auto">
+            <li>
+              <button
+                className={`w-full text-left px-2 py-2 text-sm rounded-md hover:bg-gray-50 ${!currentAssignedId ? 'text-violet-600' : 'text-gray-700'}`}
+                onClick={() => { onSelect(''); onClose() }}
+              >
+                Unassigned
+              </button>
+            </li>
+            {members.map((m) => (
+              <li key={m.id}>
+                <button
+                  className={`w-full text-left px-2 py-2 text-sm rounded-md hover:bg-gray-50 ${currentAssignedId === m.id ? 'text-violet-600' : 'text-gray-700'}`}
+                  onClick={() => { onSelect(m.id); onClose() }}
+                >
+                  {m.name} <span className="text-gray-400">({m.email})</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   )

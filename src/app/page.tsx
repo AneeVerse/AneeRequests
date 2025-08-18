@@ -22,6 +22,7 @@ interface Request {
     name: string
   }
   created_at: string
+  assigned_to?: string
 }
 
 export default function DashboardPage() {
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [recentRequests, setRecentRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string }[]>([])
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -53,17 +55,20 @@ export default function DashboardPage() {
         const data = await response.json()
         setStats(data.stats)
         setRecentRequests(data.recentRequests)
-      } else {
-        // Client sees only their own data
-        const response = await fetch('/api/requests')
+      } else if (user?.role === 'client') {
+        // Client sees only their own requests
+        let url = '/api/requests'
+        if ((user as any)?.clientId) {
+          url = `/api/requests?client_id=${encodeURIComponent((user as any).clientId)}`
+        }
+        const response = await fetch(url)
         
         if (!response.ok) {
           throw new Error('Failed to fetch requests data')
         }
         
         const requestsData = await response.json()
-        // Filter requests for this client (in real app, this would be by client ID)
-        const clientRequests = requestsData.slice(0, 5) // Just show first 5 for demo
+        const clientRequests = requestsData.slice(0, 5)
         
         setStats({
           revenue: 0,
@@ -73,6 +78,27 @@ export default function DashboardPage() {
           team: 0
         })
         setRecentRequests(clientRequests)
+      } else {
+        // Team members: show only their assigned requests
+        let url = '/api/requests'
+        if ((user?.id || '').startsWith('impersonated-team-')) {
+          const memberId = (user?.id || '').replace('impersonated-team-', '')
+          url = `/api/requests?team_member_id=${encodeURIComponent(memberId)}`
+        }
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error('Failed to fetch requests data')
+        }
+        const requestsData = await response.json()
+        const assigned = requestsData
+        setStats({
+          revenue: 0,
+          clients: 0,
+          requests: assigned.length,
+          reviews: 0,
+          team: 0
+        })
+        setRecentRequests(assigned)
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
@@ -93,6 +119,26 @@ export default function DashboardPage() {
       loadDashboardData()
     }
   }, [isAuthenticated, isLoading, router, loadDashboardData])
+
+  // Fetch team members to resolve assigned_to names
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        const res = await fetch('/api/team')
+        if (res.ok) {
+          const data = await res.json()
+          setTeamMembers(data)
+        }
+      } catch {}
+    }
+    loadMembers()
+  }, [])
+
+  const getMemberName = (id?: string) => {
+    if (!id) return undefined
+    const m = teamMembers.find(tm => tm.id === id)
+    return m?.name || m?.email
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -299,7 +345,9 @@ export default function DashboardPage() {
                 <div className="col-span-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                    <span className="text-gray-500">None</span>
+                    <span className="text-gray-600" title={getMemberName(request.assigned_to) || 'Unassigned'}>
+                      {getMemberName(request.assigned_to) || 'None'}
+                    </span>
                   </div>
                 </div>
                 <div className="col-span-1">
