@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { TeamMember } from '@/lib/models/schemas'
+import { TeamMember, User } from '@/lib/models/schemas'
+import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 
 type TeamMemberLean = {
@@ -9,6 +10,7 @@ type TeamMemberLean = {
   email: string
   role: 'admin' | 'member' | 'viewer'
   status: 'active' | 'inactive' | 'pending'
+  can_view_client_portal?: boolean
   created_at?: Date
   __v?: number
 } | null
@@ -44,16 +46,44 @@ export async function PUT(
     await connectDB()
     
     const body = await request.json()
-    const { name, email, role, status } = body
+    const { name, email, role, status, password, can_view_client_portal } = body
 
+    const memberId = (await params).id
     const updatedMember = (await TeamMember.findByIdAndUpdate(
-      (await params).id,
-      { name, email, role, status },
+      memberId,
+      { name, email, role, status, can_view_client_portal },
       { new: true }
     ).lean()) as TeamMemberLean
 
     if (!updatedMember) {
       return NextResponse.json({ error: 'Team member not found' }, { status: 404 })
+    }
+
+    // If password provided, create/update corresponding auth user
+    if (password && email) {
+      try {
+        let authUser = await User.findOne({ email })
+        const hashed = await bcrypt.hash(password, 12)
+        if (authUser) {
+          authUser.password = hashed
+          authUser.role = role
+          authUser.team_member_id = memberId as unknown as any
+          authUser.is_verified = true
+          await authUser.save()
+        } else {
+          authUser = new User({
+            email,
+            password: hashed,
+            name,
+            role,
+            team_member_id: memberId,
+            is_verified: true
+          })
+          await authUser.save()
+        }
+      } catch (e) {
+        console.error('Failed to update auth user password for team member', e)
+      }
     }
 
     return NextResponse.json({

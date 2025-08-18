@@ -196,9 +196,9 @@ export default function TeamMemberDetailPage() {
             <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
               Overview
             </button>
-            <button className="pb-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">
-              Reviews
-            </button>
+            <Link href={`/team/${memberId}/edit`} className="pb-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">
+              Settings
+            </Link>
           </div>
         </div>
 

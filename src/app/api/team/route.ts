@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { TeamMember } from '@/lib/models/schemas'
+import { TeamMember, User } from '@/lib/models/schemas'
+import bcrypt from 'bcryptjs'
 
 export async function GET() {
   try {
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
     await connectDB()
     
     const body = await request.json()
-    const { name, email, role } = body
+    const { name, email, role, password } = body
+    const normalizedEmail = (email || '').toLowerCase().trim()
 
     if (!name || !email) {
       return NextResponse.json({ 
@@ -36,8 +38,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Validate password upfront to avoid creating member then erroring
+    if (password && password.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 })
+    }
+
     // Check if email already exists
-    const existingMember = await TeamMember.findOne({ email: email.toLowerCase() })
+    const existingMember = await TeamMember.findOne({ email: normalizedEmail })
     if (existingMember) {
       return NextResponse.json({ 
         error: 'A team member with this email already exists' 
@@ -46,11 +53,37 @@ export async function POST(request: NextRequest) {
 
     const newTeamMember = new TeamMember({
       name,
-      email,
+      email: normalizedEmail,
       role: role || 'member'
     })
 
     await newTeamMember.save()
+
+    // If password provided, create/update user account linked to this team member
+    if (password) {
+      if (password.length < 6) {
+        return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 })
+      }
+      const hashed = await bcrypt.hash(password, 12)
+      const existingUser = await User.findOne({ email: normalizedEmail })
+      if (existingUser) {
+        existingUser.password = hashed
+        existingUser.role = role === 'admin' ? 'admin' : (role || 'member')
+        existingUser.team_member_id = newTeamMember._id
+        existingUser.is_verified = true
+        await existingUser.save()
+      } else {
+        const user = new User({
+          email: normalizedEmail,
+          password: hashed,
+          name,
+          role: role === 'admin' ? 'admin' : (role || 'member'),
+          team_member_id: newTeamMember._id,
+          is_verified: true
+        })
+        await user.save()
+      }
+    }
 
     return NextResponse.json({
       ...newTeamMember.toObject(),

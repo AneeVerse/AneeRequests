@@ -30,7 +30,8 @@ export default function TeamPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "member"
+    role: "member",
+    password: ""
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -97,7 +98,7 @@ export default function TeamPage() {
       // Success - reload team members and close modal
       await loadTeamMembers()
       setShowModal(false)
-      setFormData({ name: "", email: "", role: "member" })
+      setFormData({ name: "", email: "", role: "member", password: "" })
     } catch (err) {
       console.error('Error creating team member:', err)
       alert(err instanceof Error ? err.message : 'Failed to create team member')
@@ -111,7 +112,8 @@ export default function TeamPage() {
     setFormData({
       name: member.name,
       email: member.email,
-      role: member.role
+      role: member.role,
+      password: ""
     })
     setShowEditModal(true)
     setOpenMenuId(null)
@@ -145,7 +147,7 @@ export default function TeamPage() {
       await loadTeamMembers()
       setShowEditModal(false)
       setEditingMember(null)
-      setFormData({ name: "", email: "", role: "member" })
+      setFormData({ name: "", email: "", role: "member", password: "" })
     } catch (err) {
       console.error('Error updating team member:', err)
       alert(err instanceof Error ? err.message : 'Failed to update team member')
@@ -517,6 +519,21 @@ export default function TeamPage() {
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password (optional)
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Set an initial password"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">If provided, a login account will be created immediately.</p>
+                </div>
+
                 <div className="flex items-center justify-end gap-3 pt-4">
                   <button
                     type="button"
@@ -548,7 +565,7 @@ export default function TeamPage() {
                   onClick={() => {
                     setShowEditModal(false)
                     setEditingMember(null)
-                    setFormData({ name: "", email: "", role: "member" })
+                    setFormData({ name: "", email: "", role: "member", password: "" })
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -612,7 +629,7 @@ export default function TeamPage() {
                     onClick={() => {
                       setShowEditModal(false)
                       setEditingMember(null)
-                      setFormData({ name: "", email: "", role: "member" })
+                      setFormData({ name: "", email: "", role: "member", password: "" })
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                   >

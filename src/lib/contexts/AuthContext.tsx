@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: data.user.name,
           role: 'admin'
         } as AdminUser
-      } else {
+      } else if (data.user.role === 'client') {
         user = {
           id: data.user.id,
           email: data.user.email,
@@ -113,6 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clientName: data.user.name,
           clientCompany: 'Individual'
         } as ClientUser
+      } else {
+        // Team user (member/viewer)
+        user = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          role: data.user.role,
+        } as User
       }
       
       localStorage.setItem('auth_user', JSON.stringify(user))
