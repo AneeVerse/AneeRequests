@@ -7,7 +7,7 @@ import Link from "next/link"
 
 export default function ChangePasswordPage() {
 
-  const { changePassword, requestPasswordReset, adminSendTemporaryPassword, user } = useAuth() as any
+  const { changePassword, requestPasswordReset, adminSendTemporaryPassword, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -99,13 +99,13 @@ export default function ChangePasswordPage() {
         }
       } else {
         const result = await requestPasswordReset(forgotEmail)
-        if ((result as any)?.success === false) {
-          setForgotMessage({ type: "error", text: (result as any).message || "Failed to send reset email" })
+        if ((result as { success?: boolean; message?: string })?.success === false) {
+          setForgotMessage({ type: "error", text: (result as { message?: string }).message || "Failed to send reset email" })
         } else {
-          setForgotMessage({ type: "success", text: (result as any)?.message || "Password reset email sent (check console if email is not configured)." })
+          setForgotMessage({ type: "success", text: (result as { message?: string })?.message || "Password reset email sent (check console if email is not configured)." })
         }
       }
-    } catch (err) {
+    } catch {
       setForgotMessage({ type: "error", text: "Failed to send reset email" })
     } finally {
       setForgotLoading(false)

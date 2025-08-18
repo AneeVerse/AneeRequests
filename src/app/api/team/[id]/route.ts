@@ -67,7 +67,7 @@ export async function PUT(
         if (authUser) {
           authUser.password = hashed
           authUser.role = role
-          authUser.team_member_id = memberId as unknown as any
+          authUser.team_member_id = memberId as unknown as mongoose.Types.ObjectId
           authUser.is_verified = true
           await authUser.save()
         } else {

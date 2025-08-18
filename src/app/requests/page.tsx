@@ -107,18 +107,17 @@ export default function RequestsPage() {
 
       const updatedRequest = await response.json()
       
-      // Update the requests array with the updated request
+      // Update the request in the local state
       setRequests(prevRequests => 
         prevRequests.map(req => 
           req.id === requestId ? { ...req, ...updatedRequest } : req
         )
       )
-
-      // Clear editing state
+      
       setEditingField(null)
-    } catch (err) {
-      console.error(`Error updating ${field}:`, err)
-      // You could add error handling UI here
+    } catch (error) {
+      console.error(`Error updating ${field}:`, error)
+      alert(`Failed to update ${field}`)
     }
   }
 
@@ -619,7 +618,7 @@ function AssignDropdown({ requestId, currentAssignedId, onSelect, onClose }: { r
 
   return (
     <div className="relative">
-      <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg w-64 p-2" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg w-64 p-2" onClick={() => {}}>
         <div className="flex items-center justify-between px-2 pb-2">
           <div className="text-xs font-medium text-gray-500">Assign to</div>
           <button className="text-gray-400 hover:text-gray-600" onClick={onClose}>×</button>

@@ -58,8 +58,8 @@ export default function DashboardPage() {
       } else if (user?.role === 'client') {
         // Client sees only their own requests
         let url = '/api/requests'
-        if ((user as any)?.clientId) {
-          url = `/api/requests?client_id=${encodeURIComponent((user as any).clientId)}`
+        if ((user as { clientId?: string })?.clientId) {
+          url = `/api/requests?client_id=${encodeURIComponent((user as { clientId: string }).clientId)}`
         }
         const response = await fetch(url)
         
@@ -123,7 +123,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.role])
+  }, [user?.role, user])
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
