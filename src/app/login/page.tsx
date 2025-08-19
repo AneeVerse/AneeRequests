@@ -1,5 +1,6 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
@@ -32,6 +33,14 @@ export default function LoginPage() {
     password: ""
   })
 
+  // Clear form data when component mounts or when switching between forms
+  useEffect(() => {
+    if (!showForgotPassword && !showPasswordResetForm) {
+      setFormData({ email: "", password: "" })
+      setError("")
+    }
+  }, [showForgotPassword, showPasswordResetForm])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -44,6 +53,11 @@ export default function LoginPage() {
     const result = await login(formData)
     
     if (result.success) {
+      // Clear form data after successful login
+      setFormData({ email: "", password: "" })
+      // Reset the form element to clear any browser autocomplete
+      const form = e.target as HTMLFormElement
+      form.reset()
       router.push("/")
     } else {
       setError(result.message)
@@ -337,7 +351,7 @@ export default function LoginPage() {
           </div>
         ) : (
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -351,10 +365,11 @@ export default function LoginPage() {
                   id="email"
                   name="email"
                   type="email"
-                  autoComplete="email"
+                  autoComplete="username"
                   required
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
+                  onBlur={(e) => handleInputChange('email', e.target.value)}
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
                   placeholder="Enter your email"
                 />
@@ -378,6 +393,7 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
+                  onBlur={(e) => handleInputChange('password', e.target.value)}
                   className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
                   placeholder="Enter your password"
                 />

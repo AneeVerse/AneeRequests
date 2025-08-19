@@ -56,20 +56,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAuth = () => {
-      const savedUser = localStorage.getItem('auth_user')
-      const savedImpersonation = localStorage.getItem('auth_impersonation')
-      if (savedUser) {
-        const user = JSON.parse(savedUser) as User
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user })
-        if (savedImpersonation) {
-          const impersonation = JSON.parse(savedImpersonation)
-          if (impersonation.user) {
-            dispatch({ type: 'IMPERSONATE_USER', payload: { user: impersonation.user, originalUser: impersonation.originalUser } })
-          } else if (impersonation.clientUser) {
-            dispatch({ type: 'IMPERSONATE_CLIENT', payload: { clientUser: impersonation.clientUser, originalUser: impersonation.originalUser } })
+      try {
+        const savedUser = localStorage.getItem('auth_user')
+        const savedImpersonation = localStorage.getItem('auth_impersonation')
+        if (savedUser) {
+          const user = JSON.parse(savedUser) as User
+          dispatch({ type: 'LOGIN_SUCCESS', payload: user })
+          if (savedImpersonation) {
+            const impersonation = JSON.parse(savedImpersonation)
+            if (impersonation.user) {
+              dispatch({ type: 'IMPERSONATE_USER', payload: { user: impersonation.user, originalUser: impersonation.originalUser } })
+            } else if (impersonation.clientUser) {
+              dispatch({ type: 'IMPERSONATE_CLIENT', payload: { clientUser: impersonation.clientUser, originalUser: impersonation.originalUser } })
+            }
           }
+        } else {
+          dispatch({ type: 'SET_LOADING', payload: false })
         }
-      } else {
+      } catch (error) {
+        console.error('Error checking auth state:', error)
+        // Clear corrupted localStorage data
+        localStorage.removeItem('auth_user')
+        localStorage.removeItem('auth_impersonation')
         dispatch({ type: 'SET_LOADING', payload: false })
       }
     }
@@ -123,7 +131,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } as User
       }
       
-      localStorage.setItem('auth_user', JSON.stringify(user))
+      try {
+        localStorage.setItem('auth_user', JSON.stringify(user))
+      } catch (storageError) {
+        console.error('Error saving to localStorage:', storageError)
+        // Continue with login even if localStorage fails
+      }
+      
       dispatch({ type: 'LOGIN_SUCCESS', payload: user })
       
       return { success: true, message: 'Login successful' }
@@ -135,8 +149,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    localStorage.removeItem('auth_user')
-    localStorage.removeItem('auth_impersonation')
+    try {
+      localStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_impersonation')
+    } catch (error) {
+      console.error('Error clearing localStorage:', error)
+    }
     dispatch({ type: 'LOGOUT' })
     // Redirect to login page
     window.location.href = '/login'
