@@ -220,35 +220,35 @@ export default function RequestsPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
         <h1 className="text-sm font-semibold text-gray-900">
           Requests
         </h1>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {canCreateRequest && (
             <Link
               href="/requests/new"
               className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700 transition-colors"
             >
-              <Plus size={10} className="stroke-[2.5]" />
+              <Plus size={12} className="stroke-[2.5]" />
               Create Request
             </Link>
           )}
           <button className="p-0.5 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
-            <Bell size={12} />
+            <Bell size={14} />
           </button>
         </div>
       </div>
 
       {/* Search and Controls */}
-      <div className="px-3 py-1.5 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between gap-1.5">
-          <div className="flex items-center gap-1.5 flex-1">
+      <div className="px-4 py-1.5 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <div className="relative flex-1 max-w-md">
               <input
                 type="text"
                 placeholder="Search"
-                className="w-full pl-5 pr-1.5 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
+                className="w-full pl-5 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
               />
               <div className="absolute left-1.5 top-1/2 -translate-y-1/2">
                 <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,7 +276,7 @@ export default function RequestsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="px-3 bg-white border-b border-gray-200">
+      <div className="px-4 bg-white border-b border-gray-200">
         <div className="flex gap-2">
           <button 
             onClick={() => setActiveTab('open')}
@@ -310,7 +310,7 @@ export default function RequestsPage() {
       {/* Table */}
       <div className="flex-1 bg-white border-b border-gray-200 overflow-x-auto">
         {/* Table Header */}
-        <div className={`grid ${gridColsClass} gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
+        <div className={`grid ${gridColsClass} gap-3 px-4 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
           <div className="col-span-1 flex items-center">
             <input type="checkbox" className="w-2.5 h-2.5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
           </div>
@@ -318,15 +318,15 @@ export default function RequestsPage() {
             TITLE
             <ChevronDown size={6} className="ml-0.5 text-gray-400" />
           </div>
-          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">
+          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px] ml-28">
             CLIENT
             <ChevronDown size={6} className="ml-0.5 text-gray-400" />
           </div>}
-          <div className="col-span-2 flex items-center min-w-[120px]">
+          <div className="col-span-2 flex items-center min-w-[120px] ml-18">
             STATUS
             <ChevronDown size={6} className="ml-0.5 text-gray-400" />
           </div>
-          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">
+          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px] ml-5">
             ASSIGNED TO
             <ChevronDown size={6} className="ml-0.5 text-gray-400" />
           </div>}
@@ -438,7 +438,7 @@ export default function RequestsPage() {
         {!loading && !error && filteredRequests.map((request) => (
           <div
             key={request.id}
-            className={`grid ${gridColsClass} gap-1.5 px-3 py-1.5 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[40px] items-center`}
+            className={`grid ${gridColsClass} gap-3 px-4 py-1.5 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[40px] items-center`}
           >
             <div className="col-span-1 flex items-center">
               <input type="checkbox" className="w-2.5 h-2.5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
@@ -450,12 +450,12 @@ export default function RequestsPage() {
               </div>
             </div>
             {isAdmin && (
-              <div className="col-span-2 min-w-[120px]">
+              <div className="col-span-2 min-w-[120px] ml-28">
                 <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
                 <div className="text-gray-500 text-xs">{request.client?.client_company?.name || ''}</div>
               </div>
             )}
-            <div className="col-span-2 flex items-center min-w-[120px]" onClick={(e) => {
+            <div className="col-span-2 flex items-center min-w-[120px] ml-14" onClick={(e) => {
               e.preventDefault()
               setEditingField({requestId: request.id, field: 'status'})
             }}>
@@ -494,7 +494,7 @@ export default function RequestsPage() {
             </div>
             {isAdmin && (
               <div
-                className="col-span-2 flex items-center min-w-[120px]"
+                className="col-span-2 flex items-center min-w-[120px] ml-5"
                 onClick={(e) => {
                   e.preventDefault()
                   setEditingField({ requestId: request.id, field: 'assigned_to' })
@@ -594,7 +594,7 @@ export default function RequestsPage() {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-200 bg-white">
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-200 bg-white">
         <div className="text-xs text-gray-600">
           Showing 1 to {filteredRequests.length} of {requests.length} result{requests.length !== 1 ? 's' : ''}
         </div>
