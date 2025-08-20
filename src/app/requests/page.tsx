@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
-import { Filter, List, LayoutGrid, Plus } from "lucide-react"
+import { Filter, List, LayoutGrid, Plus, Bell, BarChart3, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 
@@ -215,86 +215,92 @@ export default function RequestsPage() {
   const isAdmin = user?.role === 'admin'
   const isClient = user?.role === 'client'
   const canCreateRequest = isAdmin || isClient
-  const gridColsClass = isAdmin ? 'grid-cols-12' : 'grid-cols-8'
+  const gridColsClass = isAdmin ? 'grid-cols-13' : 'grid-cols-9'
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-8 py-6 bg-white border-b border-gray-200">
-        <h1 className="text-2xl font-semibold text-gray-900">
+      <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200">
+        <h1 className="text-sm font-semibold text-gray-900">
           Requests
         </h1>
-        {canCreateRequest && (
-          <Link
-            href="/requests/new"
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition-colors"
-          >
-            <Plus size={16} className="stroke-[2.5]" />
-            Create Request
-          </Link>
-        )}
+        <div className="flex items-center gap-1">
+          {canCreateRequest && (
+            <Link
+              href="/requests/new"
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700 transition-colors"
+            >
+              <Plus size={10} className="stroke-[2.5]" />
+              Create Request
+            </Link>
+          )}
+          <button className="p-0.5 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
+            <Bell size={12} />
+          </button>
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="px-8 py-4 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1">
+      {/* Search and Controls */}
+      <div className="px-3 py-1.5 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5 flex-1">
             <div className="relative flex-1 max-w-md">
               <input
                 type="text"
-                placeholder="Search requests..."
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-shadow"
+                placeholder="Search"
+                className="w-full pl-5 pr-1.5 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
               />
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="absolute left-1.5 top-1/2 -translate-y-1/2">
+                <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter size={16} className="text-gray-500" />
+          <div className="flex items-center gap-1">
+            <button className="flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+              <Filter size={10} className="text-gray-500" />
               Filters
+              <ChevronDown size={8} />
             </button>
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 gap-1">
-              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
-                <LayoutGrid size={16} />
-              </button>
-              <button className="p-2 text-violet-600 bg-gray-50 rounded-md">
-                <List size={16} />
-              </button>
-            </div>
+            <button className="p-0.5 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
+              <BarChart3 size={10} />
+            </button>
+            <button className="flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+              <List size={10} />
+              List
+              <ChevronDown size={8} />
+            </button>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="px-8 bg-white border-b border-gray-200">
-        <div className="flex gap-6">
+      <div className="px-3 bg-white border-b border-gray-200">
+        <div className="flex gap-2">
           <button 
             onClick={() => setActiveTab('open')}
-            className={`py-4 px-2 text-sm font-medium ${activeTab === 'open' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+            className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'open' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
           >
             Open
           </button>
           <button 
             onClick={() => setActiveTab('all')}
-            className={`py-4 px-2 text-sm font-medium ${activeTab === 'all' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+            className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'all' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
           >
             All
           </button>
           {isAdmin && (
             <button 
               onClick={() => setActiveTab('unassigned')}
-              className={`py-4 px-2 text-sm font-medium ${activeTab === 'unassigned' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+              className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'unassigned' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
             >
               Unassigned
             </button>
           )}
           <button 
             onClick={() => setActiveTab('completed')}
-            className={`py-4 px-2 text-sm font-medium ${activeTab === 'completed' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+            className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'completed' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
           >
             Completed
           </button>
@@ -304,14 +310,42 @@ export default function RequestsPage() {
       {/* Table */}
       <div className="flex-1 bg-white border-b border-gray-200 overflow-x-auto">
         {/* Table Header */}
-        <div className={`grid ${gridColsClass} gap-4 px-8 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
-          <div className="col-span-3 flex items-center min-w-[200px]">TITLE</div>
-          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">CLIENT</div>}
-          <div className="col-span-2 flex items-center min-w-[120px]">STATUS</div>
-          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">ASSIGNED TO</div>}
-          <div className="col-span-1 flex items-center min-w-[80px]">PRIORITY</div>
-          <div className="col-span-1 flex items-center min-w-[80px]">UPDATED</div>
-          <div className="col-span-1 flex items-center min-w-[80px]">DUE DATE</div>
+        <div className={`grid ${gridColsClass} gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
+          <div className="col-span-1 flex items-center">
+            <input type="checkbox" className="w-2.5 h-2.5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
+          </div>
+          <div className="col-span-2 flex items-center min-w-[200px]">
+            TITLE
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>
+          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">
+            CLIENT
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>}
+          <div className="col-span-2 flex items-center min-w-[120px]">
+            STATUS
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>
+          {isAdmin && <div className="col-span-2 flex items-center min-w-[120px]">
+            ASSIGNED TO
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>}
+          <div className="col-span-1 flex items-center min-w-[80px]">
+            PRIORITY
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>
+          <div className="col-span-1 flex items-center min-w-[80px]">
+            UPDATED
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>
+          <div className="col-span-1 flex items-center min-w-[80px]">
+            DUE DATE
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>
+          <div className="col-span-1 flex items-center min-w-[80px]">
+            CREATED
+            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+          </div>
         </div>
 
         {/* Loading State */}
@@ -404,18 +438,21 @@ export default function RequestsPage() {
         {!loading && !error && filteredRequests.map((request) => (
           <div
             key={request.id}
-            className={`grid ${gridColsClass} gap-4 px-8 py-4 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[80px] items-center`}
+            className={`grid ${gridColsClass} gap-1.5 px-3 py-1.5 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[40px] items-center`}
           >
-            <div className="col-span-3 min-w-[200px]">
-              <Link href={`/requests/${request.id}`} className="font-medium text-gray-900 mb-1 hover:text-violet-700" onClick={(e)=>{ if (editingField?.requestId === request.id) e.preventDefault() }}>{request.title}</Link>
+            <div className="col-span-1 flex items-center">
+              <input type="checkbox" className="w-2.5 h-2.5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
+            </div>
+            <div className="col-span-2 min-w-[200px]">
+              <Link href={`/requests/${request.id}`} className="font-medium text-gray-900 mb-0 hover:text-violet-700 text-xs" onClick={(e)=>{ if (editingField?.requestId === request.id) e.preventDefault() }}>{request.title}</Link>
               <div className="text-gray-500 text-xs line-clamp-1">
                 {getDescriptionPreview(request.description) || 'No description'}
               </div>
             </div>
             {isAdmin && (
               <div className="col-span-2 min-w-[120px]">
-                <div className="font-medium text-gray-900">{request.client?.client_company?.name || ''}</div>
-                <div className="text-gray-500 text-xs">{request.client?.name || 'Unknown Client'}</div>
+                <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
+                <div className="text-gray-500 text-xs">{request.client?.client_company?.name || ''}</div>
               </div>
             )}
             <div className="col-span-2 flex items-center min-w-[120px]" onClick={(e) => {
@@ -432,7 +469,7 @@ export default function RequestsPage() {
                     }}
                     onBlur={() => setEditingField(null)}
                     autoFocus
-                    className="w-full text-sm text-gray-900 border border-gray-300 rounded-lg py-2 pl-3 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
+                    className="w-full text-xs text-gray-900 border border-gray-300 rounded-md py-1.5 pl-2 pr-6 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
                   >
                     <option value="submitted">Submitted</option>
                     <option value="in_progress">In Progress</option>
@@ -440,16 +477,16 @@ export default function RequestsPage() {
                     <option value="completed">Completed</option>
                     <option value="closed">Closed</option>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none">
+                    <svg className="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 w-full cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
-                  <div className={`w-2 h-2 rounded-full ${getStatusStyle(request.status).dot}`}></div>
-                  <span className={`capitalize text-sm font-medium ${getStatusStyle(request.status).text}`}>
+                <div className="flex items-center gap-1.5 w-full cursor-pointer hover:bg-gray-50 px-1.5 py-0.5 rounded-md transition-colors">
+                  <div className={`w-1.5 h-1.5 rounded-full ${getStatusStyle(request.status).dot}`}></div>
+                  <span className={`capitalize text-xs font-medium ${getStatusStyle(request.status).text}`}>
                     {request.status.replace('_', ' ')}
                   </span>
                 </div>
@@ -471,10 +508,13 @@ export default function RequestsPage() {
                     onClose={() => setEditingField(null)}
                   />
                 ) : (
-                  <div className="flex items-center gap-2 w-full cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors" title={getMemberName(request.assigned_to) || 'Unassigned'}>
-                    <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                    <span className="text-gray-600 text-sm truncate max-w-[140px]">{getMemberName(request.assigned_to) || 'None'}</span>
-                    <span className="ml-auto text-gray-400">+</span>
+                  <div className="flex items-center gap-1.5 w-full cursor-pointer hover:bg-gray-50 px-1.5 py-0.5 rounded-md transition-colors" title={getMemberName(request.assigned_to) || 'Unassigned'}>
+                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
+                      <svg className="w-2.5 h-2.5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                      </svg>
+                    </div>
+                    <span className="text-gray-600 text-xs truncate max-w-[140px]">{getMemberName(request.assigned_to) || 'None'}</span>
                   </div>
                 )}
               </div>
@@ -493,27 +533,27 @@ export default function RequestsPage() {
                     }}
                     onBlur={() => setEditingField(null)}
                     autoFocus
-                    className="w-full text-sm text-gray-900 border border-gray-300 rounded-lg py-1.5 pl-2 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
+                    className="w-full text-xs text-gray-900 border border-gray-300 rounded-md py-1 pl-1.5 pr-5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                     <option value="urgent">Urgent</option>
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
+                    <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 w-full cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
-                  <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
-                  <span className={`capitalize text-sm font-medium ${getPriorityStyle(request.priority).text}`}>{request.priority}</span>
+                <div className="flex items-center gap-1.5 w-full cursor-pointer hover:bg-gray-50 px-1.5 py-0.5 rounded-md transition-colors">
+                  <div className={`w-1.5 h-1.5 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                  <span className={`capitalize text-xs font-medium ${getPriorityStyle(request.priority).text}`}>{request.priority}</span>
                 </div>
               )}
             </div>
-            <div className="col-span-1 flex items-center text-gray-500 text-sm min-w-[80px]">
+            <div className="col-span-1 flex items-center text-gray-500 text-xs min-w-[80px]">
               {formatDate(request.updated_at)}
             </div>
             <div className="col-span-1 flex items-center min-w-[80px]" onClick={(e) => {
@@ -531,57 +571,60 @@ export default function RequestsPage() {
                     }}
                     onBlur={() => setEditingField(null)}
                     autoFocus
-                    className="w-full text-sm border border-gray-300 rounded-lg py-1.5 px-3 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 cursor-pointer shadow-sm z-10 relative"
+                    className="w-full text-xs border border-gray-300 rounded-md py-1 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 cursor-pointer shadow-sm z-10 relative"
                     min={new Date().toISOString().split('T')[0]}
                   />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none">
+                    <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center w-full cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
-                  <span className="text-sm text-gray-500">{request.due_date ? formatDate(request.due_date) : 'No due date'}</span>
+                <div className="flex items-center w-full cursor-pointer hover:bg-gray-50 px-1.5 py-0.5 rounded-md transition-colors">
+                  <span className="text-xs text-gray-500">{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
                 </div>
               )}
+            </div>
+            <div className="col-span-1 flex items-center text-gray-500 text-xs min-w-[80px]">
+              {formatDate(request.created_at)}
             </div>
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-8 py-4 border-t border-gray-200 bg-white">
-        <div className="text-sm text-gray-600">
-          Showing {requests.length} of {requests.length} result{requests.length !== 1 ? 's' : ''}
+      <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-200 bg-white">
+        <div className="text-xs text-gray-600">
+          Showing 1 to {filteredRequests.length} of {requests.length} result{requests.length !== 1 ? 's' : ''}
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Rows per page</span>
-            <select className="text-sm bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-600">Rows per page</span>
+            <select className="text-xs bg-gray-50 border border-gray-200 rounded-md px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500">
               <option>15</option>
               <option>25</option>
               <option>50</option>
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-0.5">
+            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
               </svg>
             </button>
-            <button className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <button className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
             </button>
