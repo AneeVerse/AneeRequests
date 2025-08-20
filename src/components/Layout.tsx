@@ -13,7 +13,9 @@ import {
   ChevronDown,
   LogOut,
   User,
-  Shield
+  Shield,
+  Menu,
+  X
 } from "lucide-react"
 
 const getSidebarItems = (userRole: string) => {
@@ -41,12 +43,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { user, isAuthenticated, isLoading, impersonating, logout, stopImpersonation } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false)
+      }
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setSidebarOpen(false)
       }
     }
 
@@ -55,6 +62,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
 
   // Show loading state
   if (isLoading) {
@@ -72,10 +84,36 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" />
+      )}
+
       {/* Sidebar */}
-      <div className="w-48 bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo */}
-        <div className="p-3 border-b border-gray-200">
+      <div 
+        ref={sidebarRef}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between p-3 border-b border-gray-200 lg:hidden">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-purple-600 rounded-md flex items-center justify-center">
+              <span className="text-white font-bold text-xs">A</span>
+            </div>
+            <span className="font-semibold text-gray-900 text-sm">AneeRequests</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Desktop Logo */}
+        <div className="hidden lg:block p-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-purple-600 rounded-md flex items-center justify-center">
               <span className="text-white font-bold text-xs">A</span>
@@ -85,7 +123,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-3">
+        <nav className="flex-1 px-2 py-3 overflow-y-auto">
           <ul className="space-y-1">
             {getSidebarItems(user?.role || 'client').map((item: { name: string; href: string; icon: React.ComponentType<{ size: number }> }) => {
               const isActive = pathname === item.href || 
@@ -95,13 +133,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-purple-50 text-purple-700 border-r-2 border-purple-600"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     }`}
                   >
-                    <item.icon size={16} />
+                    <item.icon size={18} />
                     {item.name}
                   </Link>
                 </li>
@@ -111,44 +149,44 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Bottom Section */}
-        <div className="p-2 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-200">
           <div 
             ref={userMenuRef}
             className="relative"
           >
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 px-2 py-1.5 text-xs w-full hover:bg-gray-50 rounded-md transition-colors"
+              className="flex items-center gap-3 px-2 py-2 text-sm w-full hover:bg-gray-50 rounded-md transition-colors"
             >
-              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium text-purple-600">
+              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-purple-600">
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </span>
               </div>
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 text-xs">{user?.name}</div>
+                <div className="font-medium text-gray-900 text-sm">{user?.name}</div>
                 <div className="text-xs text-gray-500">{user?.email}</div>
                 {impersonating && (
                   <div className="text-xs text-orange-600 font-medium">Impersonating</div>
                 )}
               </div>
-              <ChevronDown size={12} className="text-gray-400" />
+              <ChevronDown size={14} className="text-gray-400" />
             </button>
             
             {showUserMenu && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                <div className="px-2 py-1.5 border-b border-gray-100">
-                  <div className="text-xs font-medium text-gray-900">{user?.name}</div>
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <div className="text-sm font-medium text-gray-900">{user?.name}</div>
                   <div className="text-xs text-gray-500">{user?.email}</div>
                   {user?.role === 'admin' && (
                     <div className="flex items-center gap-1 mt-1">
-                      <Shield size={10} className="text-purple-600" />
+                      <Shield size={12} className="text-purple-600" />
                       <span className="text-xs text-purple-600 font-medium">Admin</span>
                     </div>
                   )}
                   {user?.role === 'client' && (
                     <div className="flex items-center gap-1 mt-1">
-                      <User size={10} className="text-blue-600" />
+                      <User size={12} className="text-blue-600" />
                       <span className="text-xs text-blue-600 font-medium">Client</span>
                     </div>
                   )}
@@ -160,9 +198,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       stopImpersonation()
                       setShowUserMenu(false)
                     }}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-orange-600 hover:bg-orange-50"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-orange-600 hover:bg-orange-50"
                   >
-                    <Shield size={12} />
+                    <Shield size={14} />
                     Leave impersonation
                   </button>
                 )}
@@ -170,9 +208,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/settings/profile-and-account"
                   onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  <User size={12} />
+                  <User size={14} />
                   Your Profile
                 </Link>
                 
@@ -181,9 +219,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     logout()
                     setShowUserMenu(false)
                   }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  <LogOut size={12} />
+                  <LogOut size={14} />
                   Sign Out
                 </button>
               </div>
@@ -194,6 +232,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-purple-600 rounded-md flex items-center justify-center">
+              <span className="text-white font-bold text-xs">A</span>
+            </div>
+            <span className="font-semibold text-gray-900 text-sm">AneeRequests</span>
+          </div>
+          <div className="w-10" /> {/* Spacer for centering */}
+        </div>
+
         <div className="flex-1 overflow-y-auto">
           {children}
         </div>

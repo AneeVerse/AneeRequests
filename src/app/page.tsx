@@ -189,14 +189,15 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 gap-3">
+        <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
           Welcome, {user?.name || 'User'}
         </h1>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md">
             <Calendar size={16} />
-            <span>10 Jul - 10 Aug</span>
+            <span className="hidden sm:inline">10 Jul - 10 Aug</span>
+            <span className="sm:hidden">Date Range</span>
             <ChevronDown size={16} />
           </div>
         </div>
@@ -205,8 +206,8 @@ export default function DashboardPage() {
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         {/* Metrics Grid */}
-        <div className="px-6 py-6">
-        <div className="grid grid-cols-4 gap-6 mb-8">
+        <div className="px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REVENUE</div>
             <div className="text-2xl font-semibold text-gray-900">
@@ -253,12 +254,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Search and Controls */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+          <div className="relative w-full sm:w-80">
             <input
               type="text"
               placeholder="Search"
-              className="w-80 pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
             />
             <div className="absolute left-3 top-2.5">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,25 +276,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-4">
-          <div className="flex gap-8">
-            <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
+        <div className="border-b border-gray-200 mb-4 overflow-x-auto">
+          <div className="flex gap-4 sm:gap-8 min-w-max">
+            <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">
               Open
             </button>
-            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
               All
             </button>
-            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
               Unassigned
             </button>
-            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+            <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
               Completed
             </button>
           </div>
         </div>
 
-        {/* Scrollable Table Container */}
-        <div className="border border-gray-200 rounded-md overflow-hidden">
+        {/* Desktop Table */}
+        <div className="hidden lg:block border border-gray-200 rounded-md overflow-hidden">
           {/* Table Headers */}
           <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50">
             <div className="col-span-1 flex items-center">
@@ -334,7 +335,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Table Rows */}
+            {/* Desktop Table Rows */}
             {!loading && !error && recentRequests.map((request) => (
               <Link 
                 key={request.id}
@@ -387,14 +388,79 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Mobile Card View */}
+        <div className="lg:hidden space-y-4">
+          {!loading && !error && recentRequests.map((request) => (
+            <Link 
+              key={request.id}
+              href={`/requests/${request.id}`}
+              className="block p-4 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-gray-900 text-base mb-1 truncate">{request.title}</h3>
+                  <p className="text-gray-500 text-sm">No description</p>
+                </div>
+                <div className="flex items-center gap-2 ml-3">
+                  <input type="checkbox" className="w-4 h-4 text-purple-600 border-gray-300 rounded" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
+                  <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
+                  <div className="text-gray-500 text-xs">Individual</div>
+                </div>
+                
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(request.status).replace('text-', 'bg-')}`}></div>
+                    <span className={`capitalize font-medium ${getStatusColor(request.status)}`}>
+                      {request.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                    <span className="text-gray-600">{getMemberName(request.assigned_to) || 'None'}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
+                    <span className="text-gray-500 capitalize">{request.priority}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">UPDATED</div>
+                  <div className="text-gray-900">{formatDate(request.created_at)}</div>
+                </div>
+
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">DUE DATE</div>
+                  <div className="text-gray-900">Due Date</div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
         {/* Footer */}
         {!loading && !error && recentRequests.length > 0 && (
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
-            <div className="text-sm text-gray-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-gray-200 mt-4 gap-3">
+            <div className="text-sm text-gray-500 text-center sm:text-left">
               Showing {recentRequests.length} of {stats.requests} total requests
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <span className="text-sm text-gray-500">Rows per page</span>
                 <select className="text-sm border border-gray-300 rounded px-2 py-1">
                   <option>15</option>

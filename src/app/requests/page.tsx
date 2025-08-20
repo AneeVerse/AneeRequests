@@ -364,29 +364,30 @@ export default function RequestsPage() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200">
-        <h1 className="text-sm font-semibold text-gray-900">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+        <h1 className="text-lg font-semibold text-gray-900">
           Requests
         </h1>
         <div className="flex items-center gap-2">
           {canCreateRequest && (
             <Link
               href="/requests/new"
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 rounded-md hover:bg-violet-700 transition-colors"
             >
-              <Plus size={12} className="stroke-[2.5]" />
-              Create Request
+              <Plus size={16} className="stroke-[2.5]" />
+              <span className="hidden sm:inline">Create Request</span>
+              <span className="sm:hidden">Create</span>
             </Link>
           )}
-          <button className="p-0.5 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
-            <Bell size={14} />
+          <button className="p-2 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors">
+            <Bell size={16} />
           </button>
         </div>
       </div>
 
-      {/* Search and Controls */}
-      <div className="px-4 py-1.5 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between gap-2">
+            {/* Search and Controls */}
+      <div className="px-4 py-3 bg-white border-b border-gray-200">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 flex-1">
             <div className="relative flex-1 max-w-md">
               <input
@@ -394,52 +395,52 @@ export default function RequestsPage() {
                 placeholder="Search requests, clients, descriptions..."
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="w-full pl-8 pr-8 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
+                className="w-full pl-10 pr-10 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
               />
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               {filters.search && (
                 <button
                   onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
                 >
-                  <X size={12} />
+                  <X size={16} />
                 </button>
               )}
-             
             </div>
             {hasActiveFilters() && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap"
               >
-                <X size={10} />
-                Clear filters
+                <X size={14} />
+                <span className="hidden sm:inline">Clear filters</span>
+                <span className="sm:hidden">Clear</span>
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium border rounded-md transition-colors ${
+              className={`flex items-center gap-1 px-3 py-2 text-sm font-medium border rounded-md transition-colors ${
                 showFilters || hasActiveFilters()
                   ? 'text-violet-700 bg-violet-50 border-violet-200'
                   : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50'
               }`}
             >
-              <Filter size={10} className={showFilters || hasActiveFilters() ? "text-violet-500" : "text-gray-500"} />
-              Filters
+              <Filter size={16} className={showFilters || hasActiveFilters() ? "text-violet-500" : "text-gray-500"} />
+              <span className="hidden sm:inline">Filters</span>
               {hasActiveFilters() && (
-                <span className="w-1.5 h-1.5 bg-violet-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-violet-500 rounded-full"></span>
               )}
-              <ChevronDown size={8} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
-            <button className="p-0.5 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
-              <BarChart3 size={10} />
+            <button className="p-2 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
+              <BarChart3 size={16} />
             </button>
-            <button className="flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
-              <List size={10} />
-              List
-              <ChevronDown size={8} />
+            <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+              <List size={16} />
+              <span className="hidden sm:inline">List</span>
+              <ChevronDown size={14} />
             </button>
           </div>
         </div>
@@ -448,7 +449,7 @@ export default function RequestsPage() {
       {/* Filter Panel */}
       {showFilters && (
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {/* Client Filter */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Client</label>
@@ -568,81 +569,81 @@ export default function RequestsPage() {
       )}
 
       {/* Tabs */}
-      <div className="px-4 bg-white border-b border-gray-200">
-        <div className="flex gap-2">
+      <div className="px-4 bg-white border-b border-gray-200 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
           <button 
             onClick={() => setActiveTab('open')}
-            className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'open' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+            className={`py-2 px-3 text-sm font-medium whitespace-nowrap ${activeTab === 'open' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
           >
             Open
           </button>
           <button 
             onClick={() => setActiveTab('all')}
-            className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'all' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+            className={`py-2 px-3 text-sm font-medium whitespace-nowrap ${activeTab === 'all' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
           >
             All
           </button>
           {isAdmin && (
             <button 
               onClick={() => setActiveTab('unassigned')}
-              className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'unassigned' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+              className={`py-2 px-3 text-sm font-medium whitespace-nowrap ${activeTab === 'unassigned' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
             >
               Unassigned
             </button>
           )}
           <button 
             onClick={() => setActiveTab('completed')}
-            className={`py-1.5 px-1 text-xs font-medium ${activeTab === 'completed' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
+            className={`py-2 px-3 text-sm font-medium whitespace-nowrap ${activeTab === 'completed' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300'} -mb-px transition-colors`}
           >
             Completed
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 bg-white border-b border-gray-200 overflow-x-auto">
+      {/* Desktop Table */}
+      <div className="hidden lg:block flex-1 bg-white border-b border-gray-200 overflow-x-auto">
         {/* Table Header */}
-        <div className={`grid ${gridColsClass} gap-3 px-4 py-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
+        <div className={`grid ${gridColsClass} gap-3 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50/50 border-y border-gray-200 min-w-[800px]`}>
           <div className="col-span-1 flex items-center">
-            <input type="checkbox" className="w-2.5 h-2.5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
+            <input type="checkbox" className="w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
           </div>
           <div className="col-span-2 flex items-center min-w-[200px]">
             TITLE
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>
           {isAdmin && <div className="col-span-2 flex items-center min-w-[120px] ml-28">
             CLIENT
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>}
           <div className="col-span-2 flex items-center min-w-[120px] ml-18">
             STATUS
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>
           {isAdmin && <div className="col-span-2 flex items-center min-w-[120px] ml-5">
             ASSIGNED TO
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>}
           <div className="col-span-1 flex items-center min-w-[80px]">
             PRIORITY
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>
           <div className="col-span-1 flex items-center min-w-[80px]">
             UPDATED
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>
           <div className="col-span-1 flex items-center min-w-[80px]">
             DUE DATE
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>
           <div className="col-span-1 flex items-center min-w-[80px]">
             CREATED
-            <ChevronDown size={6} className="ml-0.5 text-gray-400" />
+            <ChevronDown size={8} className="ml-1 text-gray-400" />
           </div>
         </div>
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center h-[400px] min-w-[800px]">
+          <div className="flex items-center justify-center h-[400px]">
             <div className="flex flex-col items-center gap-4">
               <div className="w-10 h-10 border-3 border-violet-500/20 border-t-violet-500 rounded-full animate-spin"></div>
               <div className="text-sm text-gray-600 font-medium">Loading requests...</div>
@@ -652,7 +653,7 @@ export default function RequestsPage() {
 
         {/* Error State */}
         {error && (
-          <div className="flex items-center justify-center h-[400px] min-w-[800px]">
+          <div className="flex items-center justify-center h-[400px] px-4">
             <div className="flex flex-col items-center gap-4 text-center max-w-sm mx-auto">
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-red-100 text-red-600">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -678,7 +679,7 @@ export default function RequestsPage() {
 
         {/* Empty State */}
         {!loading && !error && filteredRequests.length === 0 && requests.length === 0 && (
-          <div className="flex items-center justify-center h-[400px] min-w-[800px]">
+          <div className="flex items-center justify-center h-[400px] px-4">
             <div className="flex flex-col items-center gap-4 text-center max-w-sm mx-auto">
               <div className="w-14 h-14 flex items-center justify-center rounded-full bg-violet-100 text-violet-600">
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -702,7 +703,7 @@ export default function RequestsPage() {
 
         {/* Empty State - No Requests Matching Filter */}
         {!loading && !error && filteredRequests.length === 0 && requests.length > 0 && (
-          <div className="flex items-center justify-center py-16 min-w-[800px]">
+          <div className="flex items-center justify-center py-16 px-4">
             <div className="text-center max-w-sm">
               <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-gray-50">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -724,7 +725,7 @@ export default function RequestsPage() {
                   </>
                 )}
               </p>
-              <div className="flex gap-2 justify-center">
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 {hasActiveFilters() && (
                   <button
                     onClick={clearFilters}
@@ -745,11 +746,11 @@ export default function RequestsPage() {
           </div>
         )}
 
-        {/* Table Rows */}
+        {/* Desktop Table Rows */}
         {!loading && !error && filteredRequests.map((request) => (
           <div
             key={request.id}
-            className={`grid ${gridColsClass} gap-3 px-4 py-1.5 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[40px] items-center`}
+            className={`grid ${gridColsClass} gap-3 px-4 py-3 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer min-w-[800px] min-h-[40px] items-center`}
           >
             <div className="col-span-1 flex items-center">
               <input type="checkbox" className="w-2.5 h-2.5 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
@@ -904,9 +905,92 @@ export default function RequestsPage() {
         ))}
       </div>
 
+      {/* Mobile Card View */}
+      <div className="lg:hidden flex-1 bg-white">
+        {!loading && !error && filteredRequests.map((request) => (
+          <div
+            key={request.id}
+            className="p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <Link href={`/requests/${request.id}`} className="block">
+                  <h3 className="font-medium text-gray-900 text-base mb-1 truncate">{request.title}</h3>
+                  <p className="text-gray-500 text-sm line-clamp-2">
+                    {getDescriptionPreview(request.description) || 'No description'}
+                  </p>
+                </Link>
+              </div>
+              <div className="flex items-center gap-2 ml-3">
+                <input type="checkbox" className="w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {isAdmin && (
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
+                  <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
+                  <div className="text-gray-500 text-xs">{request.client?.client_company?.name || ''}</div>
+                </div>
+              )}
+              
+              <div>
+                <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${getStatusStyle(request.status).dot}`}></div>
+                  <span className={`capitalize font-medium ${getStatusStyle(request.status).text}`}>
+                    {request.status.replace('_', ' ')}
+                  </span>
+                </div>
+              </div>
+
+              {isAdmin && (
+                <div>
+                  <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                      </svg>
+                    </div>
+                    <span className="text-gray-600">{getMemberName(request.assigned_to) || 'None'}</span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                  <span className={`capitalize font-medium ${getPriorityStyle(request.priority).text}`}>
+                    {request.priority}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-gray-500 text-xs font-medium mb-1">UPDATED</div>
+                <div className="text-gray-900">{formatDate(request.updated_at)}</div>
+              </div>
+
+              <div>
+                <div className="text-gray-500 text-xs font-medium mb-1">DUE DATE</div>
+                <div className="text-gray-900">{request.due_date ? formatDate(request.due_date) : 'Not set'}</div>
+              </div>
+
+              <div>
+                <div className="text-gray-500 text-xs font-medium mb-1">CREATED</div>
+                <div className="text-gray-900">{formatDate(request.created_at)}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-200 bg-white">
-        <div className="text-xs text-gray-600">
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-200 bg-white gap-3">
+        <div className="text-sm text-gray-600 text-center sm:text-left">
           {filteredRequests.length === 0 ? (
             'No results found'
           ) : (
@@ -918,33 +1002,33 @@ export default function RequestsPage() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-600">Rows per page</span>
-            <select className="text-xs bg-gray-50 border border-gray-200 rounded-md px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500">
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-sm text-gray-600">Rows per page</span>
+            <select className="text-sm bg-gray-50 border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500">
               <option>15</option>
               <option>25</option>
               <option>50</option>
             </select>
           </div>
-          <div className="flex items-center gap-0.5">
-            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-1">
+            <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
               </svg>
             </button>
-            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
             </button>

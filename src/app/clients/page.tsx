@@ -220,41 +220,43 @@ export default function ClientsPage() {
     <RouteGuard requireAdmin>
       <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900">Clients</h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 gap-3">
+        <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Clients</h1>
         <div className="flex items-center gap-3">
           <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-            Announcements
+            <span className="hidden sm:inline">Announcements</span>
+            <span className="sm:hidden">Announce</span>
           </button>
           <Link 
             href="/clients/new"
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
           >
             <Plus size={16} />
-            Create Client Account
+            <span className="hidden sm:inline">Create Client Account</span>
+            <span className="sm:hidden">Create</span>
           </Link>
         </div>
       </div>
 
       {/* Tabs and Search */}
-      <div className="px-6 py-4">
+      <div className="px-4 sm:px-6 py-4">
         {/* Tabs */}
-        <div className="flex gap-8 mb-6">
-          <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
+        <div className="flex gap-4 sm:gap-8 mb-6 overflow-x-auto">
+          <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">
             Clients
           </button>
-          <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+          <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
             Organizations
           </button>
         </div>
 
         {/* Search and Controls */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+          <div className="relative w-full sm:w-80">
             <input
               type="text"
               placeholder="Search"
-              className="w-80 pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
             />
             <div className="absolute left-3 top-2.5">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +267,7 @@ export default function ClientsPage() {
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
               <Filter size={16} />
-              Filters
+              <span className="hidden sm:inline">Filters</span>
               <ChevronDown size={14} />
             </button>
             <button className="p-2 text-gray-400 hover:text-gray-600">

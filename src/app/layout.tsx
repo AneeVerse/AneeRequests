@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AneeRequests - Request Management Dashboard",
   description: "Manage requests, clients, and team members efficiently",
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
