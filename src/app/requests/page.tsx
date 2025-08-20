@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
-import { Filter, List, LayoutGrid, Plus, Bell, BarChart3, ChevronDown } from "lucide-react"
+import { Filter, List, LayoutGrid, Plus, Bell, BarChart3, ChevronDown, X, Search } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 
@@ -28,6 +28,17 @@ interface Request {
   assigned_to?: string
 }
 
+interface FilterState {
+  search: string
+  client: string
+  organization: string
+  assignedTo: string
+  status: string
+  priority: string
+  dueDate: string
+  createdDate: string
+}
+
 export default function RequestsPage() {
   const { user } = useAuth()
   const [requests, setRequests] = useState<Request[]>([])
@@ -37,20 +48,93 @@ export default function RequestsPage() {
   const [error, setError] = useState<string | null>(null)
   const [editingField, setEditingField] = useState<{requestId: string, field: string} | null>(null)
   const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string }[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [organizations, setOrganizations] = useState<string[]>([])
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterDataLoading, setFilterDataLoading] = useState(false)
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    client: '',
+    organization: '',
+    assignedTo: '',
+    status: '',
+    priority: '',
+    dueDate: '',
+    createdDate: ''
+  })
 
-  // Filter requests based on active tab
+  // Filter requests based on active tab and filters
   const filterRequests = useCallback(() => {
-    if (activeTab === 'all') {
-      setFilteredRequests(requests)
-    } else if (activeTab === 'open') {
-      setFilteredRequests(requests.filter(req => req.status !== 'completed' && req.status !== 'closed'))
+    let filtered = requests
+
+    // First apply tab filtering
+    if (activeTab === 'open') {
+      filtered = filtered.filter(req => req.status !== 'completed' && req.status !== 'closed')
     } else if (activeTab === 'unassigned') {
-      // Assuming unassigned requests don't have an assigned_to field or it's null
-      setFilteredRequests(requests.filter(req => !req.assigned_to))
+      filtered = filtered.filter(req => !req.assigned_to)
     } else if (activeTab === 'completed') {
-      setFilteredRequests(requests.filter(req => req.status === 'completed' || req.status === 'closed'))
+      filtered = filtered.filter(req => req.status === 'completed' || req.status === 'closed')
     }
-  }, [requests, activeTab])
+    // 'all' tab shows all requests
+
+    // Apply search filter
+    if (filters.search.trim()) {
+      const searchTerm = filters.search.toLowerCase().trim()
+      filtered = filtered.filter(req => 
+        req.title.toLowerCase().includes(searchTerm) ||
+        req.description.toLowerCase().includes(searchTerm) ||
+        req.client?.name.toLowerCase().includes(searchTerm) ||
+        req.client?.client_company?.name.toLowerCase().includes(searchTerm) ||
+        getMemberName(req.assigned_to)?.toLowerCase().includes(searchTerm)
+      )
+    }
+
+    // Apply client filter
+    if (filters.client) {
+      filtered = filtered.filter(req => req.client?.id === filters.client)
+    }
+
+    // Apply organization filter
+    if (filters.organization) {
+      filtered = filtered.filter(req => req.client?.client_company?.name === filters.organization)
+    }
+
+    // Apply assigned to filter
+    if (filters.assignedTo) {
+      filtered = filtered.filter(req => req.assigned_to === filters.assignedTo)
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      filtered = filtered.filter(req => req.status === filters.status)
+    }
+
+    // Apply priority filter
+    if (filters.priority) {
+      filtered = filtered.filter(req => req.priority === filters.priority)
+    }
+
+    // Apply due date filter
+    if (filters.dueDate) {
+      const dueDate = new Date(filters.dueDate)
+      filtered = filtered.filter(req => {
+        if (!req.due_date) return false
+        const requestDueDate = new Date(req.due_date)
+        return requestDueDate.toDateString() === dueDate.toDateString()
+      })
+    }
+
+    // Apply created date filter
+    if (filters.createdDate) {
+      const createdDate = new Date(filters.createdDate)
+      filtered = filtered.filter(req => {
+        const requestCreatedDate = new Date(req.created_at)
+        return requestCreatedDate.toDateString() === createdDate.toDateString()
+      })
+    }
+
+    setFilteredRequests(filtered)
+  }, [requests, activeTab, filters])
 
   // Load requests from API
   const loadData = useCallback(async () => {
@@ -89,6 +173,27 @@ export default function RequestsPage() {
     }
   }, [user?.role, user?.id])
 
+  // Load clients and organizations for filters
+  const loadFilterData = useCallback(async () => {
+    try {
+      setFilterDataLoading(true)
+      // Load clients
+      const clientsResponse = await fetch('/api/clients')
+      if (clientsResponse.ok) {
+        const clientsData = await clientsResponse.json()
+        setClients(clientsData)
+        
+        // Extract unique organizations
+        const orgs = Array.from(new Set(clientsData.map((client: Client) => client.client_company?.name).filter((name: string | undefined): name is string => Boolean(name)))) as string[]
+        setOrganizations(orgs)
+      }
+    } catch (err) {
+      console.error('Error loading filter data:', err)
+    } finally {
+      setFilterDataLoading(false)
+    }
+  }, [])
+
   const handleFieldUpdate = async (requestId: string, field: string, value: string) => {
     try {
       const response = await fetch(`/api/requests/${requestId}`, {
@@ -121,9 +226,48 @@ export default function RequestsPage() {
     }
   }
 
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      client: '',
+      organization: '',
+      assignedTo: '',
+      status: '',
+      priority: '',
+      dueDate: '',
+      createdDate: ''
+    })
+  }
+
+  const hasActiveFilters = () => {
+    return Object.values(filters).some(value => value !== '')
+  }
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
+        if (searchInput) {
+          searchInput.focus()
+        }
+      }
+      // Escape to close filters
+      if (e.key === 'Escape' && showFilters) {
+        setShowFilters(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showFilters])
+
   useEffect(() => {
     loadData()
-  }, [loadData])
+    loadFilterData()
+  }, [loadData, loadFilterData])
 
   // Prefetch team members for name lookup / tooltip
   useEffect(() => {
@@ -145,10 +289,10 @@ export default function RequestsPage() {
     return m?.name || m?.email
   }
 
-  // Apply filters whenever requests or activeTab changes
+  // Apply filters whenever requests, activeTab, or filters change
   useEffect(() => {
     filterRequests()
-  }, [requests, activeTab, filterRequests])
+  }, [requests, activeTab, filters, filterRequests])
 
   const formatDate = (dateString: string) => {
     try {
@@ -247,21 +391,47 @@ export default function RequestsPage() {
             <div className="relative flex-1 max-w-md">
               <input
                 type="text"
-                placeholder="Search"
-                className="w-full pl-5 pr-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
+                placeholder="Search requests, clients, descriptions..."
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full pl-8 pr-8 py-1 text-xs bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
               />
-              <div className="absolute left-1.5 top-1/2 -translate-y-1/2">
-                <svg className="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+              {filters.search && (
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={12} />
+                </button>
+              )}
+             
             </div>
+            {hasActiveFilters() && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <X size={10} />
+                Clear filters
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1">
-            <button className="flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
-              <Filter size={10} className="text-gray-500" />
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-0.5 px-1.5 py-0.5 text-xs font-medium border rounded-md transition-colors ${
+                showFilters || hasActiveFilters()
+                  ? 'text-violet-700 bg-violet-50 border-violet-200'
+                  : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <Filter size={10} className={showFilters || hasActiveFilters() ? "text-violet-500" : "text-gray-500"} />
               Filters
-              <ChevronDown size={8} />
+              {hasActiveFilters() && (
+                <span className="w-1.5 h-1.5 bg-violet-500 rounded-full"></span>
+              )}
+              <ChevronDown size={8} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
             <button className="p-0.5 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
               <BarChart3 size={10} />
@@ -274,6 +444,128 @@ export default function RequestsPage() {
           </div>
         </div>
       </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {/* Client Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Client</label>
+              <select
+                value={filters.client}
+                onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value }))}
+                disabled={filterDataLoading}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">
+                  {filterDataLoading ? 'Loading...' : 'All clients'}
+                </option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Organization Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Organization</label>
+              <select
+                value={filters.organization}
+                onChange={(e) => setFilters(prev => ({ ...prev, organization: e.target.value }))}
+                disabled={filterDataLoading}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">
+                  {filterDataLoading ? 'Loading...' : 'All organizations'}
+                </option>
+                {organizations.map((org) => (
+                  <option key={org} value={org}>
+                    {org}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Assigned To Filter */}
+            {isAdmin && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
+                <select
+                  value={filters.assignedTo}
+                  onChange={(e) => setFilters(prev => ({ ...prev, assignedTo: e.target.value }))}
+                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+                >
+                  <option value="">All members</option>
+                  <option value="">Unassigned</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+              >
+                <option value="">All statuses</option>
+                <option value="submitted">Submitted</option>
+                <option value="in_progress">In Progress</option>
+                <option value="pending_response">Pending Response</option>
+                <option value="completed">Completed</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            {/* Priority Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
+              <select
+                value={filters.priority}
+                onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+              >
+                <option value="">All priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            {/* Due Date Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Due Date</label>
+              <input
+                type="date"
+                value={filters.dueDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, dueDate: e.target.value }))}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+              />
+            </div>
+
+            {/* Created Date Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Created Date</label>
+              <input
+                type="date"
+                value={filters.createdDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, createdDate: e.target.value }))}
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="px-4 bg-white border-b border-gray-200">
@@ -417,19 +709,38 @@ export default function RequestsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No matching requests</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {hasActiveFilters() ? 'No matching requests' : 'No requests found'}
+              </h3>
               <p className="text-sm text-gray-600 mb-6">
-                {activeTab === 'open' && 'There are no open requests.'}
-                {activeTab === 'unassigned' && 'There are no unassigned requests.'}
-                {activeTab === 'completed' && 'There are no completed requests.'}
-                {activeTab === 'all' && 'There are no requests matching your criteria.'}
+                {hasActiveFilters() ? (
+                  'Try adjusting your search terms or filters to find what you\'re looking for.'
+                ) : (
+                  <>
+                    {activeTab === 'open' && 'There are no open requests.'}
+                    {activeTab === 'unassigned' && 'There are no unassigned requests.'}
+                    {activeTab === 'completed' && 'There are no completed requests.'}
+                    {activeTab === 'all' && 'There are no requests in this view.'}
+                  </>
+                )}
               </p>
-              <button
-                onClick={() => setActiveTab('all')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                View all requests
-              </button>
+              <div className="flex gap-2 justify-center">
+                {hasActiveFilters() && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-colors"
+                  >
+                    <X size={14} />
+                    Clear filters
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  View all requests
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -576,7 +887,7 @@ export default function RequestsPage() {
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none">
                     <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
                 </div>
@@ -596,7 +907,16 @@ export default function RequestsPage() {
       {/* Footer */}
       <div className="flex items-center justify-between px-4 py-1.5 border-t border-gray-200 bg-white">
         <div className="text-xs text-gray-600">
-          Showing 1 to {filteredRequests.length} of {requests.length} result{requests.length !== 1 ? 's' : ''}
+          {filteredRequests.length === 0 ? (
+            'No results found'
+          ) : (
+            `Showing ${filteredRequests.length} of ${requests.length} request${requests.length !== 1 ? 's' : ''}`
+          )}
+          {hasActiveFilters() && (
+            <span className="ml-2 text-violet-600">
+              (filtered)
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
