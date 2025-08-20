@@ -414,8 +414,8 @@ export default function RequestsPage() {
             </div>
             {isAdmin && (
               <div className="col-span-2 min-w-[120px]">
-                <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
-                <div className="text-gray-500 text-xs">{request.client?.client_company?.name || ''}</div>
+                <div className="font-medium text-gray-900">{request.client?.client_company?.name || ''}</div>
+                <div className="text-gray-500 text-xs">{request.client?.name || 'Unknown Client'}</div>
               </div>
             )}
             <div className="col-span-2 flex items-center min-w-[120px]" onClick={(e) => {

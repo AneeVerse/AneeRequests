@@ -17,7 +17,7 @@ interface Client {
 export default function CreateRequestPage() {
   const router = useRouter()
   const { user } = useAuth()
-  
+
   const [step, setStep] = useState(1)
   const [selectedClient, setSelectedClient] = useState("")
   const [title, setTitle] = useState("")
@@ -30,18 +30,39 @@ export default function CreateRequestPage() {
     email: "",
     client_company_name: ""
   })
-  
+
   const [clients, setClients] = useState<Client[]>([])
+
+  // Check for client_id in URL parameters and handle client role
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const clientId = urlParams.get('client_id')
+
+    if (user?.role === 'client') {
+      // For clients, use their own ID and go directly to step 2
+      let actualClientId = user.id
+      // Handle impersonated client IDs (remove "impersonated-" prefix)
+      if (actualClientId && actualClientId.startsWith('impersonated-')) {
+        actualClientId = actualClientId.replace('impersonated-', '')
+      }
+      setSelectedClient(actualClientId)
+      setStep(2)
+    } else if (clientId && user?.role === 'admin') {
+      // For admins with client_id parameter, set the client and go to step 2
+      setSelectedClient(clientId)
+      setStep(2)
+    }
+  }, [user?.role, user?.id])
 
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/clients')
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch clients')
       }
-      
+
       const data = await response.json()
       setClients(data)
     } catch (err) {
@@ -75,11 +96,11 @@ export default function CreateRequestPage() {
         },
         body: JSON.stringify(newClientData),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to create client')
       }
-      
+
       const newClient = await response.json()
       setClients(prev => [...prev, newClient])
       setSelectedClient(newClient.id)
@@ -101,8 +122,21 @@ export default function CreateRequestPage() {
   }
 
   const handleCreateRequest = async () => {
-    if (!title || !description || !selectedClient) {
+    if (!title || !description) {
       setError('Please fill in all required fields')
+      return
+    }
+
+    // For clients, use their own ID as client_id
+    let clientId = user?.role === 'client' ? user.id : selectedClient
+
+    // Handle impersonated client IDs (remove "impersonated-" prefix)
+    if (clientId && clientId.startsWith('impersonated-')) {
+      clientId = clientId.replace('impersonated-', '')
+    }
+
+    if (!clientId) {
+      setError('Client information is required')
       return
     }
 
@@ -118,14 +152,14 @@ export default function CreateRequestPage() {
         body: JSON.stringify({
           title,
           description,
-          client_id: selectedClient
+          client_id: clientId
         }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to create request')
       }
-      
+
       const newRequest = await response.json()
       router.push(`/requests/${newRequest.id}`)
     } catch (err) {
@@ -155,15 +189,13 @@ export default function CreateRequestPage() {
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 1 ? "bg-purple-300 text-purple-900" : "bg-purple-500 text-purple-200"
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-purple-300 text-purple-900" : "bg-purple-500 text-purple-200"
+              }`}>
               {step >= 1 ? "✓" : "1"}
             </div>
             <div className={`w-16 h-0.5 ${step >= 2 ? "bg-purple-300" : "bg-purple-500"}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 2 ? "bg-purple-300 text-purple-900" : "bg-purple-500 text-purple-200 border-2 border-purple-400"
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-purple-300 text-purple-900" : "bg-purple-500 text-purple-200 border-2 border-purple-400"
+              }`}>
               2
             </div>
           </div>
@@ -174,7 +206,7 @@ export default function CreateRequestPage() {
           <h1 className="text-2xl font-semibold text-gray-900 text-center mb-8">Create Request</h1>
 
           {/* Step 1: Client Selection (Admin only) */}
-          {step === 1 && user?.role === 'admin' && (
+          {step === 1 && user?.role === 'admin' && !selectedClient && (
             <div>
               <div className="mb-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Request information</h2>
@@ -182,7 +214,7 @@ export default function CreateRequestPage() {
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Client <span className="text-red-500">(Required)</span>
                   </label>
-                  
+
                   {!showClientForm ? (
                     <div className="space-y-3">
                       <div className="relative">
@@ -200,8 +232,8 @@ export default function CreateRequestPage() {
                         </select>
                         <ChevronDown size={16} className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
                       </div>
-                      
-                      {clients.length === 0 ? (
+
+                      {clients.length === 0 && (
                         <div className="text-center py-4 bg-gray-50 rounded-md border-2 border-dashed border-gray-300">
                           <p className="text-sm text-gray-600 mb-2">No clients found</p>
                           <button
@@ -212,14 +244,6 @@ export default function CreateRequestPage() {
                             Create your first client
                           </button>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setShowClientForm(true)}
-                          className="w-full text-center py-2 text-sm text-purple-600 hover:text-purple-700 border border-purple-200 rounded-md hover:bg-purple-50"
-                        >
-                          + Add new client
-                        </button>
                       )}
                     </div>
                   ) : (
@@ -238,7 +262,7 @@ export default function CreateRequestPage() {
                           Cancel
                         </button>
                       </div>
-                      
+
                       <div>
                         <input
                           type="text"
@@ -248,7 +272,7 @@ export default function CreateRequestPage() {
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
                         />
                       </div>
-                      
+
                       <div>
                         <input
                           type="email"
@@ -258,7 +282,7 @@ export default function CreateRequestPage() {
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
                         />
                       </div>
-                      
+
                       <div>
                         <input
                           type="text"
@@ -268,7 +292,7 @@ export default function CreateRequestPage() {
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
                         />
                       </div>
-                      
+
                       <button
                         type="button"
                         onClick={handleCreateClient}
@@ -307,8 +331,8 @@ export default function CreateRequestPage() {
             </div>
           )}
 
-          {/* Step 2: Title and Description */}
-          {step === 2 && (
+          {/* Step 2: Title and Description (or Step 1 for clients) */}
+          {(step === 2 || (user?.role === 'client' && step === 1)) && (
             <div>
               <div className="mb-6">
                 <div className="mb-4">
@@ -329,13 +353,13 @@ export default function CreateRequestPage() {
                     Description <span className="text-red-500">(Required)</span>
                   </label>
                   <div className="min-h-32">
-                                         <SimpleTextEditor
-                       onSend={(content) => setDescription(content)}
-                       placeholder="I am looking to create a display for my website..."
-                       disabled={false}
-                       sending={false}
-                       variant="form"
-                     />
+                    <SimpleTextEditor
+                      onSend={(content) => setDescription(content)}
+                      placeholder="I am looking to create a display for my website..."
+                      disabled={false}
+                      sending={false}
+                      variant="form"
+                    />
                   </div>
                 </div>
               </div>

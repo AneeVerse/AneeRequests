@@ -175,6 +175,7 @@ export default function ClientDetailPage() {
       default: return 'text-gray-600'
     }
   }
+  
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -231,7 +232,7 @@ export default function ClientDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 px-6">
+        <div className=" px-6 mt-2 border-b border-gray-200">
           <div className="flex gap-8 overflow-x-auto">
             <button
               onClick={() => setActiveTab("overview")}
@@ -325,9 +326,12 @@ export default function ClientDetailPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">Requests</h2>
-                <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                <Link
+                  href={`/requests/new?client_id=${clientId}`}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                >
                   Create Requests
-                </button>
+                </Link>
               </div>
               
               {/* Statistics Cards */}
@@ -390,12 +394,15 @@ export default function ClientDetailPage() {
                   <h3 className="mt-4 text-lg font-medium text-gray-900">No Requests yet</h3>
                   <p className="mt-2 text-gray-500">Get started by creating a new Request.</p>
                   <div className="mt-6">
-                    <button className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                    <Link
+                      href={`/requests/new?client_id=${clientId}`}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                    >
                       <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
                       + Create Request
-                    </button>
+                    </Link>
                   </div>
                 </div>
               ) : (

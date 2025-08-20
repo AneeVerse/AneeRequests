@@ -338,9 +338,19 @@ export default function ClientsPage() {
                     <span className="text-xs font-medium text-purple-600">{getInitials(client.name)}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{client.name}</div>
+                    <Link 
+                      href={`/clients/${client.id}`}
+                      className="font-medium text-gray-900 hover:text-purple-600 transition-colors cursor-pointer"
+                    >
+                      {client.name}
+                    </Link>
                     {client.email && (
-                      <div className="text-gray-500 text-xs">{client.email}</div>
+                      <Link 
+                        href={`/clients/${client.id}`}
+                        className="text-gray-500 text-xs hover:text-purple-600 transition-colors cursor-pointer block"
+                      >
+                        {client.email}
+                      </Link>
                     )}
                   </div>
                 </div>
