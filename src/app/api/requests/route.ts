@@ -18,7 +18,14 @@ export async function GET(request: NextRequest) {
     
     let query: Record<string, unknown> = {}
     if (clientId) {
-      query = { client_id: clientId }
+      // Convert string clientId to ObjectId
+      try {
+        const mongoose = await import('mongoose')
+        query = { client_id: new mongoose.Types.ObjectId(clientId) }
+      } catch (error) {
+        console.error('Invalid clientId format:', clientId, error)
+        return NextResponse.json({ error: 'Invalid client ID format' }, { status: 400 })
+      }
     }
     if (teamMemberId) {
       query = { ...query, assigned_to: teamMemberId }

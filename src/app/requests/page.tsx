@@ -156,6 +156,20 @@ export default function RequestsPage() {
         }
       }
       
+      // If the logged-in user is a client (including impersonated client), restrict to their requests
+      if (user?.role === 'client') {
+        let clientId = user?.id
+        
+        // For impersonated clients, use the clientId property
+        if ((user as any)?.clientId) {
+          clientId = (user as any).clientId
+        }
+        
+        if (clientId) {
+          url = `/api/requests?client_id=${encodeURIComponent(clientId)}`
+        }
+      }
+      
       const response = await fetch(url)
       
       if (!response.ok) {
@@ -359,15 +373,23 @@ export default function RequestsPage() {
   const isAdmin = user?.role === 'admin'
   const isClient = user?.role === 'client'
   const canCreateRequest = isAdmin || isClient
+  const isImpersonating = (user?.id || '').startsWith('impersonated-')
   const gridColsClass = isAdmin ? 'grid-cols-13' : 'grid-cols-9'
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-        <h1 className="text-lg font-semibold text-gray-900">
-          Requests
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold text-gray-900">
+            {user?.role === 'client' ? 'My Requests' : 'Requests'}
+          </h1>
+          {isImpersonating && (
+            <span className="px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-md">
+              Impersonating
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {canCreateRequest && (
             <Link
@@ -687,15 +709,22 @@ export default function RequestsPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-base text-gray-900 font-medium mb-1">No requests found</div>
-                <div className="text-sm text-gray-500 mb-4">Get started by creating your first request</div>
+                <div className="text-base text-gray-900 font-medium mb-1">
+                  {user?.role === 'client' ? 'No requests yet' : 'No requests found'}
+                </div>
+                <div className="text-sm text-gray-500 mb-4">
+                  {user?.role === 'client' 
+                    ? 'Create your first request to get started' 
+                    : 'Get started by creating your first request'
+                  }
+                </div>
               </div>
               <Link
                 href="/requests/new"
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition-colors"
               >
                 <Plus size={16} className="stroke-[2.5]" />
-                Create your first request
+                {user?.role === 'client' ? 'Create your first request' : 'Create your first request'}
               </Link>
             </div>
           </div>

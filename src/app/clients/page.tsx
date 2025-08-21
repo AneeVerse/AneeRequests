@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Filter, LayoutGrid, ChevronDown, MoreHorizontal, Plus, Eye, Edit, UserCheck, ArrowRightLeft, Trash2, X, Search } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
@@ -21,9 +21,17 @@ interface Organization {
   clientCount: number
 }
 
+interface FilterState {
+  search: string
+  organization: string
+  status: string
+  createdDate: string
+}
+
 export default function ClientsPage() {
   const { user, impersonateClient } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
+  const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -42,6 +50,94 @@ export default function ClientsPage() {
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
+
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    organization: '',
+    status: '',
+    createdDate: ''
+  })
+
+  // Filter clients based on search and filters
+  const filterClients = useCallback(() => {
+    let filtered = clients
+
+    // Apply search filter
+    if (filters.search.trim()) {
+      const searchTerm = filters.search.toLowerCase().trim()
+      filtered = filtered.filter(client => 
+        client.name.toLowerCase().includes(searchTerm) ||
+        client.email?.toLowerCase().includes(searchTerm) ||
+        client.client_company?.name.toLowerCase().includes(searchTerm)
+      )
+    }
+
+    // Apply organization filter
+    if (filters.organization) {
+      filtered = filtered.filter(client => client.client_company?.name === filters.organization)
+    }
+
+    // Apply status filter (individual vs organization)
+    if (filters.status) {
+      if (filters.status === 'individual') {
+        filtered = filtered.filter(client => !client.client_company?.name)
+      } else if (filters.status === 'organization') {
+        filtered = filtered.filter(client => client.client_company?.name)
+      }
+    }
+
+    // Apply created date filter
+    if (filters.createdDate) {
+      const createdDate = new Date(filters.createdDate)
+      filtered = filtered.filter(client => {
+        const clientCreatedDate = new Date(client.created_at)
+        return clientCreatedDate.toDateString() === createdDate.toDateString()
+      })
+    }
+
+    setFilteredClients(filtered)
+  }, [clients, filters])
+
+  // Apply filters whenever clients or filters change
+  useEffect(() => {
+    filterClients()
+  }, [clients, filters, filterClients])
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      organization: '',
+      status: '',
+      createdDate: ''
+    })
+  }
+
+  const hasActiveFilters = () => {
+    return Object.values(filters).some(value => value !== '')
+  }
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement
+        if (searchInput) {
+          searchInput.focus()
+        }
+      }
+      // Escape to close filters
+      if (e.key === 'Escape' && showFilters) {
+        setShowFilters(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showFilters])
 
   useEffect(() => {
     loadClients()
@@ -252,29 +348,106 @@ export default function ClientsPage() {
 
         {/* Search and Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-          <div className="relative w-full sm:w-80">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-            />
-            <div className="absolute left-3 top-2.5">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          <div className="flex items-center gap-2 flex-1">
+            <div className="relative flex-1 max-w-md">
+              <input
+                type="text"
+                placeholder="Search clients, emails, organizations..."
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full pl-10 pr-10 py-2 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-shadow"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              {filters.search && (
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
+            {hasActiveFilters() && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap"
+              >
+                <X size={14} />
+                <span className="hidden sm:inline">Clear filters</span>
+                <span className="sm:hidden">Clear</span>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
-              <Filter size={16} />
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1 px-3 py-2 text-sm font-medium border rounded-md transition-colors ${
+                showFilters || hasActiveFilters()
+                  ? 'text-violet-700 bg-violet-50 border-violet-200'
+                  : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <Filter size={16} className={showFilters || hasActiveFilters() ? "text-violet-500" : "text-gray-500"} />
               <span className="hidden sm:inline">Filters</span>
-              <ChevronDown size={14} />
+              {hasActiveFilters() && (
+                <span className="w-2 h-2 bg-violet-500 rounded-full"></span>
+              )}
+              <ChevronDown size={14} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
+            <button className="p-2 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
               <LayoutGrid size={16} />
             </button>
           </div>
         </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {/* Organization Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Organization</label>
+                <select
+                  value={filters.organization}
+                  onChange={(e) => setFilters(prev => ({ ...prev, organization: e.target.value }))}
+                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+                >
+                  <option value="">All organizations</option>
+                  {organizations.map((org) => (
+                    <option key={org._id} value={org.name}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+                >
+                  <option value="">All clients</option>
+                  <option value="individual">Individual clients</option>
+                  <option value="organization">Organization clients</option>
+                </select>
+              </div>
+
+              {/* Created Date Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Created Date</label>
+                <input
+                  type="date"
+                  value={filters.createdDate}
+                  onChange={(e) => setFilters(prev => ({ ...prev, createdDate: e.target.value }))}
+                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <div className="bg-white rounded-lg border border-gray-200">
@@ -317,22 +490,40 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {/* Empty State */}
-          {!loading && !error && clients.length === 0 && (
-            <div className="px-6 py-12 text-center">
-              <div className="text-gray-500 mb-4">No clients found</div>
-              <Link 
-                href="/clients/new"
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
-              >
-                <Plus size={16} />
-                Create your first client
-              </Link>
-            </div>
-          )}
+                     {/* Empty State */}
+           {!loading && !error && filteredClients.length === 0 && clients.length === 0 && (
+             <div className="px-6 py-12 text-center">
+               <div className="text-gray-500 mb-4">No clients found</div>
+               <Link 
+                 href="/clients/new"
+                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+               >
+                 <Plus size={16} />
+                 Create your first client
+               </Link>
+             </div>
+           )}
 
-          {/* Table Rows */}
-          {!loading && !error && clients.map((client) => (
+           {/* Empty State - No Clients Matching Filter */}
+           {!loading && !error && filteredClients.length === 0 && clients.length > 0 && (
+             <div className="px-6 py-12 text-center">
+               <div className="text-gray-500 mb-4">
+                 {hasActiveFilters() ? 'No clients match your filters' : 'No clients found'}
+               </div>
+               {hasActiveFilters() && (
+                 <button
+                   onClick={clearFilters}
+                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 bg-violet-50 border border-violet-200 rounded-md hover:bg-violet-100"
+                 >
+                   <X size={14} />
+                   Clear filters
+                 </button>
+               )}
+             </div>
+           )}
+
+                     {/* Table Rows */}
+           {!loading && !error && filteredClients.map((client) => (
             <div key={client.id} className="grid grid-cols-12 gap-4 px-6 py-4 text-sm border-b border-gray-200 hover:bg-gray-50">
               <div className="col-span-4">
                 <div className="flex items-center gap-3">
@@ -444,12 +635,21 @@ export default function ClientsPage() {
           ))}
         </div>
 
-        {/* Footer */}
-        {!loading && !error && clients.length > 0 && (
-          <div className="flex items-center justify-between pt-4">
-            <div className="text-sm text-gray-500">
-              Showing {clients.length} of {clients.length} result{clients.length !== 1 ? 's' : ''}
-            </div>
+                 {/* Footer */}
+         {!loading && !error && filteredClients.length > 0 && (
+           <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-3">
+             <div className="text-sm text-gray-500 text-center sm:text-left">
+               {filteredClients.length === 0 ? (
+                 'No results found'
+               ) : (
+                 `Showing ${filteredClients.length} of ${clients.length} client${clients.length !== 1 ? 's' : ''}`
+               )}
+               {hasActiveFilters() && (
+                 <span className="ml-2 text-violet-600">
+                   (filtered)
+                 </span>
+               )}
+             </div>
             <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">Rows per page</span>
