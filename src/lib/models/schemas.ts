@@ -61,12 +61,28 @@ const teamMemberSchema = new mongoose.Schema({
 
 // Invoice Schema
 const invoiceSchema = new mongoose.Schema({
+  invoice_number: { type: String, required: true, unique: true },
   client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
-  amount: { type: Number, required: true },
-  status: { type: String, enum: ['draft', 'sent', 'paid', 'overdue'], default: 'draft' },
+  date_of_issue: { type: Date, default: Date.now },
   due_date: Date,
+  payment_method: String,
+  payment_reference: String,
+  status: { type: String, enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'], default: 'draft' }, // Changed 'pending' to 'sent'
+  line_items: [{
+    description: { type: String, required: true },
+    service_catalog_item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCatalogItem' },
+    rate: { type: Number, required: true },
+    quantity: { type: Number, required: true },
+    line_total: { type: Number, required: true }
+  }],
+  subtotal: { type: Number, required: true },
+  tax_amount: { type: Number, default: 0 },
+  total: { type: Number, required: true },
+  amount: { type: Number, required: true }, // Keep old field for backward compatibility
+  notes: String,
   paid_date: Date,
-  created_at: { type: Date, default: Date.now }
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now }
 })
 
 // Service Catalog Item Schema

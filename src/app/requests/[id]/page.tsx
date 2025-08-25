@@ -60,6 +60,9 @@ export default function RequestDetailPage() {
   const [deletingMessage, setDeletingMessage] = useState<string | null>(null)
   const [editingMessage, setEditingMessage] = useState<string | null>(null)
   const [editContent, setEditContent] = useState("")
+  const [editingRequestDescription, setEditingRequestDescription] = useState(false)
+  const [editRequestDescription, setEditRequestDescription] = useState("")
+  const [savingDescription, setSavingDescription] = useState(false)
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -148,6 +151,25 @@ export default function RequestDetailPage() {
     }
   }
 
+  // Function to clean HTML content and remove raw HTML tags
+  const cleanHtmlContent = (html: string) => {
+    if (!html) return ''
+    
+    // Remove empty paragraph tags
+    html = html.replace(/<p>\s*<\/p>/g, '')
+    
+    // Remove paragraph tags that only contain whitespace
+    html = html.replace(/<p>\s+<\/p>/g, '')
+    
+    // Clean up extra whitespace around content
+    html = html.replace(/>\s+</g, '><')
+    
+    // Remove any remaining empty tags
+    html = html.replace(/<[^>]*>\s*<\/[^>]*>/g, '')
+    
+    return html.trim()
+  }
+
   // Function to render markdown content with images
   const renderMarkdownContent = (content: string) => {
     if (!content) return ''
@@ -156,6 +178,9 @@ export default function RequestDetailPage() {
     if (content.includes('<')) {
       // Handle common HTML tags
       let html = content
+      
+      // Remove empty paragraph tags
+      html = html.replace(/<p>\s*<\/p>/g, '')
       
       // Convert <p> tags to proper spacing
       html = html.replace(/<p>/g, '')
@@ -171,7 +196,10 @@ export default function RequestDetailPage() {
       
       // Handle numbered lists: <li>item</li> -> <li>item</li>
       
-      return html
+      // Clean up any remaining empty tags
+      html = html.replace(/<[^>]*>\s*<\/[^>]*>/g, '')
+      
+      return html.trim()
     }
     
     // Convert markdown to HTML (for backward compatibility)
@@ -361,6 +389,100 @@ export default function RequestDetailPage() {
     }
   }
 
+  const startEditingRequestDescription = () => {
+    setEditingRequestDescription(true)
+    // Convert HTML to clean text for editing
+    const cleanText = request?.description ? 
+      request.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() : ""
+    setEditRequestDescription(cleanText)
+  }
+
+  const cancelEditingRequestDescription = () => {
+    setEditingRequestDescription(false)
+    setEditRequestDescription("")
+  }
+
+  const saveRequestDescription = async () => {
+    if (!request) {
+      setError('No request found')
+      return
+    }
+    
+    if (!editRequestDescription.trim()) {
+      setError('Description cannot be empty')
+      return
+    }
+
+    try {
+      setSavingDescription(true)
+      setError(null) // Clear any previous errors
+      
+      // Format the description with proper HTML structure
+      const formattedDescription = editRequestDescription.trim()
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => `<p>${line.trim()}</p>`)
+        .join('')
+
+      console.log('Sending update:', { description: formattedDescription })
+
+      const response = await fetch(`/api/requests/${request.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: formattedDescription
+        }),
+      })
+
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        throw new Error(`Failed to update request description: ${response.status} ${errorText}`)
+      }
+
+      const updatedRequest = await response.json()
+      setRequest(updatedRequest)
+
+      // Log the activity
+      const activityResponse = await fetch(`/api/requests/${request.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'description_updated',
+          description: `Request description updated`,
+          entity_type: 'description_update',
+          metadata: {
+            user_id: user?.id,
+            user_name: user?.name,
+            user_role: user?.role,
+            old_description: request.description,
+            new_description: editRequestDescription.trim()
+          }
+        }),
+      })
+
+      if (activityResponse.ok) {
+        const newActivity = await activityResponse.json()
+        setActivities(prev => [...prev, newActivity])
+      }
+
+      setEditingRequestDescription(false)
+      setEditRequestDescription("")
+    } catch (err) {
+      console.error('Error updating request description:', err)
+      setError('Failed to update request description')
+    } finally {
+      setSavingDescription(false)
+    }
+  }
+
   const startEditingMessage = (activity: ActivityLogEntry) => {
     setEditingMessage(activity.id)
     // Convert HTML content to plain text for editing
@@ -474,8 +596,8 @@ export default function RequestDetailPage() {
                       <div key={activity.id} className="group">
                         {activity.action === 'request_submitted' ? (
                           <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <FileText size={16} className="text-purple-600" />
+                            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <FileText size={16} className="text-primary-600" />
                             </div>
                             <div className="flex-1">
                               <div className="bg-gray-50 rounded-lg p-4">
@@ -484,14 +606,61 @@ export default function RequestDetailPage() {
                                     <span className="font-medium text-gray-900">Request submitted</span>
                                     <span className="text-sm text-gray-500">{formatDate(activity.created_at)}</span>
                                   </div>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={startEditingRequestDescription}
+                                      className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                      title="Edit request description"
+                                    >
+                                      <Edit2 size={16} />
+                                    </button>
+                                  )}
                                 </div>
                                 {activity.description && (
                                   <div>
                                     <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                                    <div
-                                      className="text-gray-700 prose prose-sm max-w-none"
-                                      dangerouslySetInnerHTML={{ __html: request.description || '' }}
-                                    />
+                                    {editingRequestDescription ? (
+                                      <div className="space-y-3">
+                                        <textarea
+                                          value={editRequestDescription}
+                                          onChange={(e) => setEditRequestDescription(e.target.value)}
+                                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-black"
+                                          rows={4}
+                                          placeholder="Enter request description..."
+                                        />
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={saveRequestDescription}
+                                            disabled={savingDescription}
+                                            className="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {savingDescription ? (
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-4 h-4 animate-spin border-2 border-white border-t-transparent rounded-full"></div>
+                                                Saving...
+                                              </div>
+                                            ) : (
+                                              'Save'
+                                            )}
+                                          </button>
+                                          <button
+                                            onClick={cancelEditingRequestDescription}
+                                            disabled={savingDescription}
+                                            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="text-gray-700 prose prose-sm max-w-none">
+                                        {request.description ? 
+                                          <div dangerouslySetInnerHTML={{ __html: cleanHtmlContent(request.description) }} />
+                                          : 
+                                          <p className="text-gray-500 italic">No description provided</p>
+                                        }
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -548,14 +717,14 @@ export default function RequestDetailPage() {
                                     <textarea
                                       value={editContent}
                                       onChange={(e) => setEditContent(e.target.value)}
-                                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-black"
+                                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-black"
                                       rows={3}
                                       placeholder="Edit your message..."
                                     />
                                     <div className="flex items-center gap-2">
                                       <button
                                         onClick={() => handleEditMessage(activity.id)}
-                                        className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+                                        className="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded hover:bg-primary-700 transition-colors"
                                       >
                                         Save
                                       </button>
@@ -578,8 +747,8 @@ export default function RequestDetailPage() {
                           </div>
                         ) : (
                           <div className="flex items-start gap-4">
-                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <div className="w-3 h-3 bg-primary-600 rounded-full"></div>
                             </div>
                             <div className="flex-1">
                               <div className="bg-gray-50 rounded-lg p-4">

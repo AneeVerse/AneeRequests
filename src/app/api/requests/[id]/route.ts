@@ -112,7 +112,7 @@ export async function PATCH(
   try {
     await connectDB()
     const body = await request.json()
-    const { status, priority, due_date, assigned_to } = body
+    const { status, priority, due_date, assigned_to, description } = body
 
     // Validate the update data
     const updateData: Record<string, unknown> = {}
@@ -131,6 +131,10 @@ export async function PATCH(
     
     if (assigned_to !== undefined) {
       updateData.assigned_to = assigned_to || null
+    }
+
+    if (description !== undefined) {
+      updateData.description = description
     }
 
     if (Object.keys(updateData).length === 0) {

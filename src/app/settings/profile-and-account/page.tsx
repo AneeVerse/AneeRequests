@@ -84,7 +84,7 @@ export default function ProfileAndAccountPage() {
         <button
           onClick={save}
           disabled={saving}
-          className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
         >
           {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
         </button>
@@ -118,7 +118,7 @@ export default function ProfileAndAccountPage() {
                     type="text"
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                   />
                 </div>
 
@@ -129,7 +129,7 @@ export default function ProfileAndAccountPage() {
                     type="email"
                     value={profile.email}
                     onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                   />
                 </div>
 
@@ -139,7 +139,7 @@ export default function ProfileAndAccountPage() {
                   <select
                     value={profile.language}
                     onChange={(e) => setProfile({ ...profile, language: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                   >
                     <option value="en">English</option>
                     <option value="ar">Arabic</option>
@@ -168,7 +168,7 @@ export default function ProfileAndAccountPage() {
                   <button
                     onClick={save}
                     disabled={saving}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
                   >
                     {saving ? 'Saving...' : 'Save'}
                   </button>

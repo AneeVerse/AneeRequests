@@ -78,7 +78,7 @@ export default function TestLoginPage() {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   onBlur={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="Enter email"
                 />
               </div>
@@ -92,14 +92,14 @@ export default function TestLoginPage() {
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   onBlur={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="Enter password"
                 />
               </div>
               
               <button
                 type="submit"
-                className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700"
+                className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700"
               >
                 Test Login
               </button>

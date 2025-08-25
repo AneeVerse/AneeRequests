@@ -13,15 +13,18 @@ export async function GET() {
       const defaultServices = [
         {
           title: 'Web Development',
-          description: 'Custom website development and design'
+          description: 'Custom website development and design',
+          price: 500
         },
         {
           title: 'Mobile App Development',
-          description: 'iOS and Android mobile application development'
+          description: 'iOS and Android mobile application development',
+          price: 800
         },
         {
           title: 'Digital Marketing',
-          description: 'SEO, social media, and digital advertising services'
+          description: 'SEO, social media, and digital advertising services',
+          price: 300
         }
       ]
 

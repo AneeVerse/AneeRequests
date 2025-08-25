@@ -325,7 +325,7 @@ export default function ClientsPage() {
           </button>
           <Link 
             href="/clients/new"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
           >
             <Plus size={16} />
             <span className="hidden sm:inline">Create Client Account</span>
@@ -338,7 +338,7 @@ export default function ClientsPage() {
       <div className="px-4 sm:px-6 py-4">
         {/* Tabs */}
         <div className="flex gap-4 sm:gap-8 mb-6 overflow-x-auto">
-          <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">
+          <button className="pb-3 text-sm font-medium text-primary-600 border-b-2 border-primary-600 whitespace-nowrap">
             Clients
           </button>
           <button className="pb-3 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap">
@@ -483,7 +483,7 @@ export default function ClientsPage() {
               <div className="text-red-600">{error}</div>
               <button 
                 onClick={loadClients}
-                className="mt-2 text-sm text-purple-600 hover:text-purple-700"
+                className="mt-2 text-sm text-primary-600 hover:text-primary-700"
               >
                 Try again
               </button>
@@ -496,7 +496,7 @@ export default function ClientsPage() {
                <div className="text-gray-500 mb-4">No clients found</div>
                <Link 
                  href="/clients/new"
-                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
                >
                  <Plus size={16} />
                  Create your first client
@@ -527,20 +527,20 @@ export default function ClientsPage() {
             <div key={client.id} className="grid grid-cols-12 gap-4 px-6 py-4 text-sm border-b border-gray-200 hover:bg-gray-50">
               <div className="col-span-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-medium text-purple-600">{getInitials(client.name)}</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-primary-600">{getInitials(client.name)}</span>
                   </div>
                   <div>
                     <Link 
                       href={`/clients/${client.id}`}
-                      className="font-medium text-gray-900 hover:text-purple-600 transition-colors cursor-pointer"
+                      className="font-medium text-gray-900 hover:text-primary-600 transition-colors cursor-pointer"
                     >
                       {client.name}
                     </Link>
                     {client.email && (
                       <Link 
                         href={`/clients/${client.id}`}
-                        className="text-gray-500 text-xs hover:text-purple-600 transition-colors cursor-pointer block"
+                        className="text-gray-500 text-xs hover:text-primary-600 transition-colors cursor-pointer block"
                       >
                         {client.email}
                       </Link>
@@ -717,7 +717,7 @@ export default function ClientsPage() {
                  <select
                    value={selectedOrg}
                    onChange={(e) => setSelectedOrg(e.target.value)}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                  >
                    <option value="">Select an option</option>
                    <option value="">Individual (No Organization)</option>
@@ -739,7 +739,7 @@ export default function ClientsPage() {
                      placeholder="Search..."
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}
-                     className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                     className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                    />
                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                  </div>
@@ -759,7 +759,7 @@ export default function ClientsPage() {
                    <div className="divide-y divide-gray-200">
                      <div
                        className={`p-3 cursor-pointer hover:bg-gray-50 ${
-                         selectedOrg === '' ? 'bg-purple-50 border-l-4 border-purple-500' : ''
+                         selectedOrg === '' ? 'bg-primary-50 border-l-4 border-primary-500' : ''
                        }`}
                        onClick={() => setSelectedOrg('')}
                      >
@@ -770,7 +770,7 @@ export default function ClientsPage() {
                        <div
                          key={org._id}
                          className={`p-3 cursor-pointer hover:bg-gray-50 ${
-                           selectedOrg === org.name ? 'bg-purple-50 border-l-4 border-purple-500' : ''
+                           selectedOrg === org.name ? 'bg-primary-50 border-l-4 border-primary-500' : ''
                          }`}
                          onClick={() => setSelectedOrg(org.name)}
                        >
@@ -794,7 +794,7 @@ export default function ClientsPage() {
                <button
                  onClick={handleChangeOrganization}
                  disabled={changingOrg}
-                 className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                 className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                >
                  {changingOrg ? 'Changing...' : 'Change Organization'}
                </button>

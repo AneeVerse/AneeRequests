@@ -175,7 +175,7 @@ export default function CreateRequestPage() {
 
   if (loading && step === 1) {
     return (
-      <div className="min-h-screen bg-purple-600 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-primary-600 flex items-center justify-center p-8">
         <div className="bg-white rounded-lg shadow-xl p-8">
           <div className="text-center text-gray-500">Loading...</div>
         </div>
@@ -184,17 +184,17 @@ export default function CreateRequestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-purple-600 flex items-center justify-center p-8">
+    <div className="min-h-screen bg-primary-600 flex items-center justify-center p-8">
       <div className="w-full max-w-2xl">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-purple-300 text-purple-900" : "bg-purple-500 text-purple-200"
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-primary-300 text-primary-900" : "bg-primary-500 text-primary-200"
               }`}>
               {step >= 1 ? "✓" : "1"}
             </div>
-            <div className={`w-16 h-0.5 ${step >= 2 ? "bg-purple-300" : "bg-purple-500"}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-purple-300 text-purple-900" : "bg-purple-500 text-purple-200 border-2 border-purple-400"
+            <div className={`w-16 h-0.5 ${step >= 2 ? "bg-primary-300" : "bg-primary-500"}`}></div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-primary-300 text-primary-900" : "bg-primary-500 text-primary-200 border-2 border-primary-400"
               }`}>
               2
             </div>
@@ -221,7 +221,7 @@ export default function CreateRequestPage() {
                         <select
                           value={selectedClient}
                           onChange={(e) => handleClientSelect(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 appearance-none bg-white text-gray-900"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white text-gray-900"
                         >
                           <option value="">Select a client...</option>
                           {clients.map((client) => (
@@ -239,7 +239,7 @@ export default function CreateRequestPage() {
                           <button
                             type="button"
                             onClick={() => setShowClientForm(true)}
-                            className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                           >
                             Create your first client
                           </button>
@@ -269,7 +269,7 @@ export default function CreateRequestPage() {
                           placeholder="Client name *"
                           value={newClientData.name}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                         />
                       </div>
 
@@ -279,7 +279,7 @@ export default function CreateRequestPage() {
                           placeholder="Email (optional)"
                           value={newClientData.email}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                         />
                       </div>
 
@@ -289,7 +289,7 @@ export default function CreateRequestPage() {
                           placeholder="Company name (optional)"
                           value={newClientData.client_company_name}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, client_company_name: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                         />
                       </div>
 
@@ -297,7 +297,7 @@ export default function CreateRequestPage() {
                         type="button"
                         onClick={handleCreateClient}
                         disabled={loading || !newClientData.name.trim()}
-                        className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {loading ? 'Creating...' : 'Create Client'}
                       </button>
@@ -323,7 +323,7 @@ export default function CreateRequestPage() {
                 <button
                   onClick={handleNext}
                   disabled={!selectedClient || loading}
-                  className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -343,7 +343,7 @@ export default function CreateRequestPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                     placeholder="Enter request title"
                   />
                 </div>
@@ -391,7 +391,7 @@ export default function CreateRequestPage() {
                 <button
                   onClick={handleCreateRequest}
                   disabled={!title || !description || loading}
-                  className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Creating...' : 'Create Request'}
                 </button>

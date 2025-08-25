@@ -32,7 +32,7 @@ export default function TeamPage() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
+  // const [searchTerm, setSearchTerm] = useState('') // Commented out unused variable
   const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
   
   const [formData, setFormData] = useState({
@@ -307,11 +307,7 @@ export default function TeamPage() {
     return status.charAt(0).toUpperCase() + status.slice(1)
   }
 
-  const filteredMembers = teamMembers.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getRoleDisplay(member.role).toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Removed duplicate filtering logic - using filterTeamMembers instead
 
   return (
     <RouteGuard requireAdmin>

@@ -39,7 +39,7 @@ export default function RouteGuard({ children, requireAdmin = false }: RouteGuar
           <div className="text-gray-600 mb-4">You don&apos;t have permission to access this page.</div>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
           >
             Go to Dashboard
           </button>

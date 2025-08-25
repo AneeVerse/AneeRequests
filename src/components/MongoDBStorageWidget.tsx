@@ -100,8 +100,8 @@ export default function MongoDBStorageWidget() {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-          <Database className="w-5 h-5 text-purple-600" />
+        <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+          <Database className="w-5 h-5 text-primary-600" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">MongoDB Storage</h3>
@@ -184,7 +184,7 @@ export default function MongoDBStorageWidget() {
         {/* Indexes */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-purple-600" />
+            <Activity className="w-5 h-5 text-primary-600" />
             <div>
               <p className="text-sm font-medium text-gray-900">Indexes</p>
               <p className="text-xs text-gray-500">Database indexes</p>

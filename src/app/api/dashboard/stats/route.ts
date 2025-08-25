@@ -29,7 +29,7 @@ export async function GET() {
       ...request,
       id: (request._id as { toString(): string }).toString(),
       client: request.client_id ? {
-        ...request.client_id,
+        name: request.client_id.name,
         id: (request.client_id._id as { toString(): string }).toString()
       } : undefined
     }))
