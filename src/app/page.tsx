@@ -38,6 +38,10 @@ export default function DashboardPage() {
     reviews: 0,
     team: 0
   })
+  
+  // When impersonating, show admin interface but with client's data
+  const isImpersonating = (user?.id || '').startsWith('impersonated-')
+  const effectiveRole = isImpersonating ? 'admin' : user?.role
   const [recentRequests, setRecentRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -78,6 +82,29 @@ export default function DashboardPage() {
         setStats({
           revenue: 0,
           clients: 1, // Just themselves
+          requests: clientRequests.length,
+          reviews: 0,
+          team: 0
+        })
+        setRecentRequests(clientRequests)
+      } else if (isImpersonating && effectiveRole === 'admin') {
+        // When impersonating a client, show admin interface but with client's data
+        let url = '/api/requests'
+        if ((user as any)?.clientId) {
+          url = `/api/requests?client_id=${encodeURIComponent((user as any).clientId)}`
+        }
+        const response = await fetch(url)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch requests data')
+        }
+        
+        const requestsData = await response.json()
+        const clientRequests = requestsData.slice(0, 5)
+        
+        setStats({
+          revenue: 0,
+          clients: 1, // Just the impersonated client
           requests: clientRequests.length,
           reviews: 0,
           team: 0
@@ -183,10 +210,11 @@ export default function DashboardPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500'
+      case 'urgent': return 'bg-red-600'
       case 'high': return 'bg-orange-500'
       case 'medium': return 'bg-yellow-500'
       case 'low': return 'bg-blue-500'
+      case 'none': return 'bg-gray-400'
       default: return 'bg-gray-400'
     }
   }
@@ -236,7 +264,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {user?.role === 'admin' ? 'CLIENTS' : 'PROJECTS'}
+              {effectiveRole === 'admin' ? 'CLIENTS' : 'PROJECTS'}
             </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.clients}
@@ -245,7 +273,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {user?.role === 'admin' ? 'REQUESTS' : 'MY REQUESTS'}
+              {effectiveRole === 'admin' ? 'REQUESTS' : 'MY REQUESTS'}
             </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.requests}
@@ -310,9 +338,11 @@ export default function DashboardPage() {
             <button className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 whitespace-nowrap shadow-sm">
               All
             </button>
-            <button className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 whitespace-nowrap shadow-sm">
-              Unassigned
-            </button>
+            {effectiveRole === 'admin' && (
+              <button className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 whitespace-nowrap shadow-sm">
+                Unassigned
+              </button>
+            )}
             <button className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 whitespace-nowrap shadow-sm">
               Completed
             </button>
@@ -324,12 +354,18 @@ export default function DashboardPage() {
           {/* Table Headers */}
           <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50">
             <div className="col-span-1 flex items-center">
-              <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
+              {!isImpersonating && (
+                <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
+              )}
             </div>
             <div className="col-span-3">TITLE</div>
-            <div className="col-span-2">CLIENT</div>
+            {effectiveRole === 'admin' && (
+              <div className="col-span-2">CLIENT</div>
+            )}
             <div className="col-span-1">STATUS</div>
-            <div className="col-span-1">ASSIGNED TO</div>
+            {effectiveRole === 'admin' && (
+              <div className="col-span-1">ASSIGNED TO</div>
+            )}
             <div className="col-span-1 flex items-center gap-1">
               PRIORITY
               <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -390,7 +426,9 @@ export default function DashboardPage() {
                 className="grid grid-cols-12 gap-4 px-4 py-4 text-xs border-b border-gray-200 hover:bg-gray-50 cursor-pointer last:border-b-0"
               >
                 <div className="col-span-1 flex items-center">
-                  <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
+                  {!isImpersonating && (
+                    <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
+                  )}
                 </div>
                 <div className="col-span-3">
                   <div className="font-medium text-gray-900">{request.title || 'Untitled Request'}</div>
@@ -398,27 +436,31 @@ export default function DashboardPage() {
                     {request.description ? request.description.substring(0, 50) + '...' : 'No description'}
                   </div>
                 </div>
-                <div className="col-span-2">
-                  <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
-                  <div className="text-gray-500 text-xs">Individual</div>
-                </div>
+                {effectiveRole === 'admin' && (
+                  <div className="col-span-2">
+                    <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
+                    <div className="text-gray-500 text-xs">Individual</div>
+                  </div>
+                )}
                 <div className="col-span-1">
                   <span className={`text-xs font-medium capitalize ${getStatusColor(request.status)}`}>
                     {request.status ? request.status.replace('_', ' ') : 'Unknown'}
                   </span>
                 </div>
-                <div className="col-span-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                    <span className="text-gray-600 text-xs" title={getMemberName(request.assigned_to) || 'Unassigned'}>
-                      {getMemberName(request.assigned_to) || 'None'}
-                    </span>
+                {effectiveRole === 'admin' && (
+                  <div className="col-span-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                      <span className="text-gray-600 text-xs" title={getMemberName(request.assigned_to) || 'Unassigned'}>
+                        {getMemberName(request.assigned_to) || 'None'}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="col-span-1">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
-                    <span className="text-gray-500 capitalize text-xs">{request.priority || 'Medium'}</span>
+                    <span className="text-gray-500 capitalize text-xs">{request.priority || 'None'}</span>
                   </div>
                 </div>
                 <div className="col-span-1 text-gray-500 text-xs">
@@ -451,17 +493,21 @@ export default function DashboardPage() {
                   <h3 className="font-medium text-gray-900 text-xs mb-1 truncate">{request.title || 'Untitled Request'}</h3>
                   <p className="text-gray-500 text-xs">{request.description ? request.description.substring(0, 50) + '...' : 'No description'}</p>
                 </div>
+                              {!isImpersonating && (
                 <div className="flex items-center gap-2 ml-3">
                   <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
                 </div>
+              )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
-                  <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
-                  <div className="text-gray-500 text-xs">Individual</div>
-                </div>
+                {effectiveRole === 'admin' && (
+                  <div>
+                    <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
+                    <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
+                    <div className="text-gray-500 text-xs">Individual</div>
+                  </div>
+                )}
                 
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
@@ -473,19 +519,21 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div>
-                  <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
-                    <span className="text-gray-600 text-xs">{getMemberName(request.assigned_to) || 'None'}</span>
+                {effectiveRole === 'admin' && (
+                  <div>
+                    <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+                      <span className="text-gray-600 text-xs">{getMemberName(request.assigned_to) || 'None'}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
-                    <span className="text-gray-500 capitalize text-xs">{request.priority || 'Medium'}</span>
+                    <span className="text-gray-500 capitalize text-xs">{request.priority || 'None'}</span>
                   </div>
                 </div>
 
@@ -509,37 +557,43 @@ export default function DashboardPage() {
             <div className="text-xs text-gray-500 text-center sm:text-left">
               Showing {recentRequests.length} of {stats.requests} total requests
             </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="text-xs text-gray-500">Rows per page</span>
-                <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                  <option>15</option>
-                </select>
-                <ChevronDown size={12} className="ml-1 text-gray-400" />
+            {!isImpersonating ? (
+              <div className="flex items-center gap-4">
+                <div className="hidden sm:flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Rows per page</span>
+                  <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                    <option>15</option>
+                  </select>
+                  <ChevronDown size={12} className="ml-1 text-gray-400" />
+                </div>
+                <div className="flex items-center gap-1">
+                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <button className="p-1 text-gray-400 hover:text-gray-600">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button className="p-1 text-gray-400 hover:text-gray-600">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button className="p-1 text-gray-400 hover:text-gray-600">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                <button className="p-1 text-gray-400 hover:text-gray-600">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                </button>
+            ) : (
+              <div className="text-xs text-gray-500">
+                Read-only view
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

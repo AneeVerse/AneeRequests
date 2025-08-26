@@ -38,8 +38,8 @@ const passwordResetSchema = new mongoose.Schema({
 const requestSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
-  status: { type: String, enum: ['submitted', 'in_progress', 'in_review', 'completed', 'cancelled'], default: 'submitted' },
-  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
+  status: { type: String, enum: ['submitted', 'in_progress', 'pending_response', 'completed', 'closed', 'cancelled'], default: 'submitted' },
+  priority: { type: String, enum: ['none', 'low', 'medium', 'high', 'urgent'], default: 'none' },
   client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
   service_catalog_item_id: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCatalogItem' },
   assigned_to: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

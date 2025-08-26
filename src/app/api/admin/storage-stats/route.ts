@@ -1,45 +1,59 @@
 import { NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { Request, ActivityLogEntry, Client, User } from '@/lib/models/schemas'
+import { Request } from '@/lib/models/schemas'
+import mongoose from 'mongoose'
 
 export async function GET() {
   try {
     await connectDB()
     
-    // Get counts using mongoose models
+    // Get total requests count
     const totalRequests = await Request.countDocuments()
-    const totalActivities = await ActivityLogEntry.countDocuments()
-    const totalClients = await Client.countDocuments()
-    const totalUsers = await User.countDocuments()
     
-    // Calculate total documents
-    const totalDocuments = totalRequests + totalActivities + totalClients + totalUsers
+    // Get requests by status
+    const statusCounts = await Request.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ])
     
-    // Estimate storage size (rough calculation)
-    const estimatedSizeMB = Math.round(totalDocuments * 0.5) // Rough estimate: 0.5KB per document
+    // Check for any requests with invalid status values
+    const validStatuses = ['submitted', 'in_progress', 'pending_response', 'completed', 'closed', 'cancelled']
+    const invalidStatusRequests = await Request.find({
+      status: { $nin: validStatuses }
+    }).select('_id title status').limit(10)
     
-    // Define storage capacity (you can adjust this based on your MongoDB plan)
-    const totalStorageCapacityMB = 512 // 512 MB for free tier, adjust as needed
-    const remainingStorageMB = Math.max(0, totalStorageCapacityMB - estimatedSizeMB)
-    const storageUsagePercentage = Math.round((estimatedSizeMB / totalStorageCapacityMB) * 100)
-    
-    const stats = {
-      totalSize: estimatedSizeMB,
-      totalCapacity: totalStorageCapacityMB,
-      remainingStorage: remainingStorageMB,
-      usagePercentage: storageUsagePercentage,
-      collections: 4, // We have 4 main collections
-      documents: totalDocuments,
-      indexes: 8, // Rough estimate of indexes
-      lastUpdated: new Date().toISOString()
+    // Get database info
+    const db = mongoose.connection.db
+    if (!db) {
+      throw new Error('Database connection not established')
     }
+    const collections = await db.listCollections().toArray()
     
-    return NextResponse.json(stats)
+    return NextResponse.json({
+      success: true,
+      database: {
+        name: db.databaseName,
+        collections: collections.length
+      },
+      requests: {
+        total: totalRequests,
+        byStatus: statusCounts,
+        invalidStatusCount: invalidStatusRequests.length,
+        invalidStatusExamples: invalidStatusRequests
+      }
+    })
   } catch (error) {
-    console.error('Error fetching storage stats:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch storage statistics' },
-      { status: 500 }
-    )
+    console.error('Error getting storage stats:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 })
   }
 }

@@ -22,6 +22,7 @@ export default function CreateRequestPage() {
   const [selectedClient, setSelectedClient] = useState("")
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [priority, setPriority] = useState("none")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showClientForm, setShowClientForm] = useState(false)
@@ -152,6 +153,7 @@ export default function CreateRequestPage() {
         body: JSON.stringify({
           title,
           description,
+          priority,
           client_id: clientId
         }),
       })
@@ -161,7 +163,18 @@ export default function CreateRequestPage() {
       }
 
       const newRequest = await response.json()
-      router.push(`/requests/${newRequest.id}`)
+      
+      // Check if we came from a client page and redirect back there
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlClientId = urlParams.get('client_id')
+      
+      if (urlClientId) {
+        // Redirect back to the client page, requests tab
+        router.push(`/clients/${urlClientId}?tab=requests`)
+      } else {
+        // Default redirect to the request detail page
+        router.push(`/requests/${newRequest.id}`)
+      }
     } catch (err) {
       console.error('Error creating request:', err)
       setError('Failed to create request. Please try again.')
@@ -361,6 +374,23 @@ export default function CreateRequestPage() {
                       variant="form"
                     />
                   </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Priority
+                  </label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                  >
+                    <option value="none">No Priority</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
                 </div>
               </div>
 

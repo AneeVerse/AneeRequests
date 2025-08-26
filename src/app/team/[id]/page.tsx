@@ -321,10 +321,11 @@ export default function TeamMemberDetailPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${
-                              request.priority === 'urgent' ? 'bg-red-500' :
+                              request.priority === 'urgent' ? 'bg-red-600' :
                               request.priority === 'high' ? 'bg-orange-500' :
                               request.priority === 'medium' ? 'bg-yellow-500' :
                               request.priority === 'low' ? 'bg-blue-500' :
+                              request.priority === 'none' ? 'bg-gray-400' :
                               'bg-gray-400'
                             }`}>
                               {request.priority}

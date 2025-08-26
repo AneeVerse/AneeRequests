@@ -68,9 +68,10 @@ export async function POST(request: NextRequest) {
     await connectDB()
     
     const body = await request.json()
-    const { title, description, client_id } = body as {
+    const { title, description, priority, client_id } = body as {
       title: string
       description: string
+      priority?: string
       client_id: string
     }
 
@@ -83,10 +84,13 @@ export async function POST(request: NextRequest) {
     const newRequest = new Request({
       title,
       description,
+      priority: priority || 'none',
       client_id
     })
 
+    console.log('Creating new request with priority:', priority || 'none')
     await newRequest.save()
+    console.log('Request saved with ID:', newRequest._id, 'Priority:', newRequest.priority)
 
     // Create initial activity log entry with default org_id
     await new ActivityLogEntry({

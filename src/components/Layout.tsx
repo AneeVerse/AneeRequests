@@ -100,7 +100,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between p-4 border-b border-gray-200 lg:hidden">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">β</span>
+              <img src="/aneeverse-logo.svg" alt="Aneeverse Logo" className="w-6 h-6" />
             </div>
             <span className="font-semibold text-gray-900 text-base">AneeRequests</span>
           </div>
@@ -116,7 +116,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="hidden lg:block p-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">β</span>
+              <img src="/aneeverse-logo.svg" alt="Aneeverse Logo" className="w-6 h-6" />
             </div>
             <span className="font-semibold text-gray-900 text-base">AneeRequests</span>
           </div>

@@ -26,7 +26,7 @@ export interface Request {
   title: string
   description: string
   status: 'submitted' | 'in_progress' | 'in_review' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
+  priority: 'none' | 'low' | 'medium' | 'high' | 'urgent'
   client_id: ObjectId
   service_catalog_item_id?: ObjectId
   assigned_to?: ObjectId

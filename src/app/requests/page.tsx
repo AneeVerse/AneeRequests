@@ -1,9 +1,138 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
-import { Filter, List, Plus, Bell, ChevronDown, X, Search } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { Filter, List, Plus, Bell, ChevronDown, ChevronUp, X, Search } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import { ClientUser } from "@/lib/types/auth"
+
+// Status dropdown component
+function StatusDropdown({ 
+  currentStatus, 
+  onStatusChange, 
+  onClose 
+}: { 
+  currentStatus: string
+  onStatusChange: (status: string) => void
+  onClose: () => void 
+}) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const statusOptions = [
+    { value: 'submitted', label: 'Submitted', color: 'bg-gray-100 text-gray-700' },
+    { value: 'in_progress', label: 'In Progress', color: 'bg-blue-100 text-blue-700' },
+    { value: 'pending_response', label: 'Pending Response', color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-700' },
+    { value: 'closed', label: 'Closed', color: 'bg-purple-100 text-purple-700' }
+  ]
+
+  const filteredOptions = statusOptions.filter(option =>
+    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [onClose])
+
+  return (
+    <div 
+      ref={dropdownRef}
+      className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+    >
+      <div className="p-3 border-b border-gray-200">
+        <input
+          type="text"
+          placeholder="Search or create a status"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+        />
+      </div>
+      <div className="py-2">
+        {filteredOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => {
+              onStatusChange(option.value)
+              onClose()
+            }}
+            className={`w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 transition-colors ${
+              currentStatus === option.value ? 'bg-gray-200' : ''
+            }`}
+          >
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${option.color}`}>
+              {option.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Priority dropdown component
+function PriorityDropdown({ 
+  currentPriority, 
+  onPriorityChange, 
+  onClose 
+}: { 
+  currentPriority: string
+  onPriorityChange: (priority: string) => void
+  onClose: () => void 
+}) {
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const priorityOptions = [
+    { value: 'none', label: 'None', dotColor: 'bg-gray-400' },
+    { value: 'low', label: 'Low', dotColor: 'bg-green-500' },
+    { value: 'medium', label: 'Medium', dotColor: 'bg-yellow-500' },
+    { value: 'high', label: 'High', dotColor: 'bg-red-500' },
+    { value: 'urgent', label: 'Urgent', dotColor: 'bg-red-600' }
+  ]
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [onClose])
+
+  return (
+    <div 
+      ref={dropdownRef}
+      className="absolute top-full left-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+    >
+      <div className="py-2">
+        {priorityOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => {
+              onPriorityChange(option.value)
+              onClose()
+            }}
+            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+              currentPriority === option.value ? 'bg-gray-100' : ''
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${option.dotColor}`}></div>
+             <span className="capitalize text-gray-900">{option.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface Client {
   id: string
@@ -221,6 +350,8 @@ export default function RequestsPage() {
 
   const handleFieldUpdate = async (requestId: string, field: string, value: string) => {
     try {
+      console.log(`Updating request ${requestId} field ${field} to value: ${value}`)
+      
       const response = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',
         headers: {
@@ -232,22 +363,35 @@ export default function RequestsPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to update ${field}`)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error Response:', response.status, errorData)
+        throw new Error(`Failed to update ${field}: ${response.status} ${errorData.error || 'Unknown error'}`)
       }
 
       const updatedRequest = await response.json()
+      console.log('Successfully updated request:', updatedRequest)
       
-      // Update the request in the local state
-      setRequests(prevRequests => 
-        prevRequests.map(req => 
-          req.id === requestId ? { ...req, ...updatedRequest } : req
+      // Update the request in the local state, preserving all existing data
+      setRequests(prevRequests => {
+        const currentRequest = prevRequests.find(req => req.id === requestId)
+        console.log('Current request before update:', currentRequest)
+        console.log('Current request client data:', currentRequest?.client)
+        
+        return prevRequests.map(req => 
+          req.id === requestId ? {
+            ...req, // Keep all existing data
+            [field]: value, // Update only the specific field
+            updated_at: updatedRequest.updated_at, // Update the timestamp
+            // Ensure client data is preserved
+            client: req.client || updatedRequest.client
+          } : req
         )
-      )
+      })
       
       setEditingField(null)
     } catch (error) {
       console.error(`Error updating ${field}:`, error)
-      alert(`Failed to update ${field}`)
+      alert(`Failed to update ${field}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -342,23 +486,27 @@ export default function RequestsPage() {
   }
 
   const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'submitted': return { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' }
-      case 'in_progress': return { bg: 'bg-yellow-50', text: 'text-yellow-700', dot: 'bg-yellow-500' }
-      case 'pending_response': return { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' }
-      case 'completed': return { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' }
-              case 'closed': return { bg: 'bg-primary-50', text: 'text-primary-700', dot: 'bg-primary-500' }
-      default: return { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400' }
+    // Normalize the status to handle different formats
+    const normalizedStatus = status.toLowerCase().replace(/[_\s]/g, '')
+    
+    switch (normalizedStatus) {
+      case 'submitted': return { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' }
+      case 'inprogress': return { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' }
+      case 'pendingresponse': return { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' }
+      case 'completed': return { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' }
+      case 'closed': return { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' }
+      default: return { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' }
     }
   }
 
   const getPriorityStyle = (priority: string) => {
     switch (priority) {
-      case 'urgent': return { dot: 'bg-red-500', text: 'text-red-700' }
-      case 'high': return { dot: 'bg-orange-500', text: 'text-orange-700' }
-      case 'medium': return { dot: 'bg-yellow-500', text: 'text-yellow-700' }
-      case 'low': return { dot: 'bg-blue-500', text: 'text-blue-700' }
-      default: return { dot: 'bg-gray-400', text: 'text-gray-700' }
+      case 'urgent': return { dot: 'bg-red-600', text: 'text-gray-900', bg: 'bg-red-100' }
+      case 'high': return { dot: 'bg-orange-500', text: 'text-gray-900', bg: 'bg-orange-100' }
+      case 'medium': return { dot: 'bg-yellow-500', text: 'text-gray-900', bg: 'bg-yellow-100' }
+      case 'low': return { dot: 'bg-blue-500', text: 'text-gray-900', bg: 'bg-blue-100' }
+      case 'none': return { dot: 'bg-gray-400', text: 'text-gray-900', bg: 'bg-gray-100' }
+      default: return { dot: 'bg-gray-400', text: 'text-gray-900', bg: 'bg-gray-100' }
     }
   }
 
@@ -377,8 +525,12 @@ export default function RequestsPage() {
 
   const isAdmin = user?.role === 'admin'
   const isClient = user?.role === 'client'
-  const canCreateRequest = isAdmin || isClient
   const isImpersonating = (user?.id || '').startsWith('impersonated-')
+  // When impersonating, show admin interface but with client's data
+  const effectiveRole = isImpersonating ? 'admin' : user?.role
+  // Impersonated clients can only read, not edit
+  const canEdit = !isImpersonating && (effectiveRole === 'admin')
+  const canCreateRequest = effectiveRole === 'admin' || effectiveRole === 'client'
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -386,7 +538,7 @@ export default function RequestsPage() {
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
         <div className="flex items-center gap-2">
           <h1 className="text-lg font-semibold text-gray-900">
-            {user?.role === 'client' ? 'My Requests' : 'Requests'}
+            {effectiveRole === 'admin' ? 'Requests' : 'My Requests'}
           </h1>
           {isImpersonating && (
             <span className="px-2 py-1 text-xs font-medium text-orange-700 bg-orange-100 rounded-md">
@@ -395,7 +547,7 @@ export default function RequestsPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {canCreateRequest && (
+          {canCreateRequest && !isImpersonating && (
             <Link
               href="/requests/new"
               className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
@@ -421,49 +573,59 @@ export default function RequestsPage() {
       {/* Search and Controls */}
       <div className="px-4 sm:px-6 py-6 bg-white">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div className="relative w-full sm:w-80">
-            <input
-              type="text"
-              placeholder="Search"
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm"
-            />
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            {filters.search && (
-              <button
-                onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
-                className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 hover:text-gray-600"
+          {!isImpersonating ? (
+            <div className="relative w-full sm:w-80">
+              <input
+                type="text"
+                placeholder="Search"
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm"
+              />
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              {filters.search && (
+                <button
+                  onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+                  className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="w-full sm:w-80 text-sm text-gray-500">
+              Viewing your requests (read-only mode)
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {!isImpersonating && (
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-3 py-2 text-xs text-gray-700 border border-gray-200 rounded-md hover:bg-gray-50 bg-white shadow-sm ${
+                  showFilters || hasActiveFilters()
+                    ? 'text-primary-700 bg-primary-50 border-primary-200'
+                    : ''
+                }`}
               >
-                <X size={16} />
+                <Filter size={16} className={showFilters || hasActiveFilters() ? "text-primary-500" : "text-gray-500"} />
+                <span className="hidden sm:inline">Filters</span>
+                {hasActiveFilters() && (
+                  <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+                )}
+                <ChevronDown size={12} />
               </button>
             )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-3 py-2 text-xs text-gray-700 border border-gray-200 rounded-md hover:bg-gray-50 bg-white shadow-sm ${
-                showFilters || hasActiveFilters()
-                  ? 'text-primary-700 bg-primary-50 border-primary-200'
-                  : ''
-              }`}
-            >
-              <Filter size={16} className={showFilters || hasActiveFilters() ? "text-primary-500" : "text-gray-500"} />
-              <span className="hidden sm:inline">Filters</span>
-              {hasActiveFilters() && (
-                <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+                          {!isImpersonating && (
+                <button className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 border border-gray-200 rounded-md hover:bg-gray-50 bg-white shadow-sm">
+                  <List size={16} />
+                  <span className="hidden sm:inline">List</span>
+                  <ChevronDown size={12} />
+                </button>
               )}
-              <ChevronDown size={12} />
-            </button>
-            <button className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 border border-gray-200 rounded-md hover:bg-gray-50 bg-white shadow-sm">
-              <List size={16} />
-              <span className="hidden sm:inline">List</span>
-              <ChevronDown size={12} />
-            </button>
           </div>
         </div>
         
-        {hasActiveFilters() && (
+        {hasActiveFilters() && !isImpersonating && (
           <div className="flex items-center gap-2 mb-4">
             <button
               onClick={clearFilters}
@@ -477,51 +639,55 @@ export default function RequestsPage() {
       </div>
 
       {/* Filter Panel */}
-      {showFilters && (
+      {showFilters && !isImpersonating && (
         <div className="px-4 sm:px-6 py-3 bg-gray-50 mb-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {/* Client Filter */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Client</label>
-              <select
-                value={filters.client}
-                onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value }))}
-                disabled={filterDataLoading}
-                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-              >
-                <option value="">
-                  {filterDataLoading ? 'Loading...' : 'All clients'}
-                </option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
+            {!isImpersonating && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Client</label>
+                <select
+                  value={filters.client}
+                  onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value }))}
+                  disabled={filterDataLoading}
+                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
+                >
+                  <option value="">
+                    {filterDataLoading ? 'Loading...' : 'All clients'}
                   </option>
-                ))}
-              </select>
-            </div>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Organization Filter */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Organization</label>
-              <select
-                value={filters.organization}
-                onChange={(e) => setFilters(prev => ({ ...prev, organization: e.target.value }))}
-                disabled={filterDataLoading}
-                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-              >
-                <option value="">
-                  {filterDataLoading ? 'Loading...' : 'All organizations'}
-                </option>
-                {organizations.map((org) => (
-                  <option key={org} value={org}>
-                    {org}
+            {!isImpersonating && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Organization</label>
+                <select
+                  value={filters.organization}
+                  onChange={(e) => setFilters(prev => ({ ...prev, organization: e.target.value }))}
+                  disabled={filterDataLoading}
+                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
+                >
+                  <option value="">
+                    {filterDataLoading ? 'Loading...' : 'All organizations'}
                   </option>
-                ))}
-              </select>
-            </div>
+                  {organizations.map((org) => (
+                    <option key={org} value={org}>
+                      {org}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Assigned To Filter */}
-            {isAdmin && (
+            {effectiveRole === 'admin' && !isImpersonating && (
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
                 <select
@@ -566,6 +732,7 @@ export default function RequestsPage() {
                 className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="">All priorities</option>
+                <option value="none">None</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
@@ -613,7 +780,7 @@ export default function RequestsPage() {
           >
             All
           </button>
-          {isAdmin && (
+          {effectiveRole === 'admin' && (
             <button 
               onClick={() => setActiveTab('unassigned')}
               className={`px-4 py-2 text-xs font-medium ${activeTab === 'unassigned' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50'} whitespace-nowrap shadow-sm transition-colors`}
@@ -636,14 +803,16 @@ export default function RequestsPage() {
         <div className="border border-gray-200 rounded-md overflow-hidden">
           <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50">
             <div className="col-span-1 flex items-center">
-              <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+              {!isImpersonating && (
+                <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+              )}
             </div>
             <div className="col-span-3">TITLE</div>
-            {isAdmin && (
+            {effectiveRole === 'admin' && (
               <div className="col-span-2">CLIENT</div>
             )}
             <div className="col-span-1">STATUS</div>
-            {isAdmin && (
+            {effectiveRole === 'admin' && (
               <div className="col-span-1">ASSIGNED</div>
             )}
             <div className="col-span-1 flex items-center gap-1">
@@ -742,7 +911,9 @@ export default function RequestsPage() {
                 className="grid grid-cols-12 gap-4 px-4 py-4 text-xs border-b border-gray-200 hover:bg-gray-50 cursor-pointer last:border-b-0"
               >
                 <div className="col-span-1 flex items-center">
-                  <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                  {!isImpersonating && (
+                    <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                  )}
                 </div>
                 <div className="col-span-3">
                   <Link 
@@ -756,65 +927,48 @@ export default function RequestsPage() {
                     {getDescriptionPreview(request.description) || 'No description'}
                   </div>
                 </div>
-                {isAdmin && (
+                {effectiveRole === 'admin' && (
                   <div className="col-span-2">
                     <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
                     <div className="text-gray-500">{request.client?.client_company?.name || ''}</div>
                   </div>
                 )}
-                <div className="col-span-1" onClick={(e) => {
-                  e.preventDefault()
-                  setEditingField({requestId: request.id, field: 'status'})
-                }}>
-                  {editingField?.requestId === request.id && editingField?.field === 'status' ? (
-                    <div className="relative w-full max-w-[120px]">
-                      <select 
-                        value={request.status}
-                        onChange={(e) => {
-                          e.preventDefault()
-                          handleFieldUpdate(request.id, 'status', e.target.value)
+                <div className="col-span-1 relative">
+                  {editingField?.requestId === request.id && editingField?.field === 'status' && canEdit ? (
+                    <div className="relative">
+                      <StatusDropdown
+                        currentStatus={request.status}
+                        onStatusChange={(newStatus) => {
+                          handleFieldUpdate(request.id, 'status', newStatus)
                         }}
-                        onBlur={() => setEditingField(null)}
-                        autoFocus
-                        className="w-full text-xs text-gray-900 border border-gray-300 rounded-md py-1.5 pl-2 pr-6 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
-                      >
-                        <option value="submitted">Submitted</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="pending_response">Pending Response</option>
-                        <option value="completed">Completed</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none">
-                        <svg className="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
+                        onClose={() => setEditingField(null)}
+                      />
                     </div>
                   ) : (
-                    <div className="-ml-4 inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
-                      <div className={`w-2 h-2 rounded-full ${getStatusStyle(request.status).dot}`}></div>
-                      <span className="capitalize font-medium text-gray-700">
-                        {request.status.replace('_', ' ')}
+                    <div className={`-ml-4 inline-flex items-center gap-2 px-2 py-1 rounded-md ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''}`} onClick={canEdit ? (e) => {
+                      e.preventDefault()
+                      setEditingField({requestId: request.id, field: 'status'})
+                    } : undefined}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                        {request.status.replace(/_/g, ' ')}
                       </span>
+                      {canEdit && <ChevronDown size={12} className="text-gray-400" />}
                     </div>
                   )}
                 </div>
-                {isAdmin && (
-                  <div
-                    className="col-span-1"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setEditingField({ requestId: request.id, field: 'assigned_to' })
-                    }}
-                  >
-                    {editingField?.requestId === request.id && editingField?.field === 'assigned_to' ? (
+                {effectiveRole === 'admin' && (
+                  <div className="col-span-1">
+                    {editingField?.requestId === request.id && editingField?.field === 'assigned_to' && canEdit ? (
                       <AssignDropdown
                         currentAssignedId={request.assigned_to}
                         onSelect={(memberId) => handleFieldUpdate(request.id, 'assigned_to', memberId)}
                         onClose={() => setEditingField(null)}
                       />
                     ) : (
-                      <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors" title={getMemberName(request.assigned_to) || 'Unassigned'}>
+                      <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''}`} title={getMemberName(request.assigned_to) || 'Unassigned'} onClick={canEdit ? (e) => {
+                        e.preventDefault()
+                        setEditingField({ requestId: request.id, field: 'assigned_to' })
+                      } : undefined}>
                         <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
@@ -825,48 +979,34 @@ export default function RequestsPage() {
                     )}
                   </div>
                 )}
-                <div className="col-span-1" onClick={(e) => {
-                  e.preventDefault()
-                  setEditingField({requestId: request.id, field: 'priority'})
-                }}>
-                  {editingField?.requestId === request.id && editingField?.field === 'priority' ? (
+                <div className="col-span-1">
+                  {editingField?.requestId === request.id && editingField?.field === 'priority' && canEdit ? (
                     <div className="relative w-full max-w-[120px]">
-                      <select 
-                        value={request.priority}
-                        onChange={(e) => {
-                          e.preventDefault()
-                          handleFieldUpdate(request.id, 'priority', e.target.value)
+                      <PriorityDropdown
+                        currentPriority={request.priority}
+                        onPriorityChange={(newPriority) => {
+                          handleFieldUpdate(request.id, 'priority', newPriority)
                         }}
-                        onBlur={() => setEditingField(null)}
-                        autoFocus
-                        className="w-full text-xs text-gray-900 border border-gray-300 rounded-md py-1 pl-1.5 pr-5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 capitalize cursor-pointer appearance-none shadow-sm z-10 relative"
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
-                        <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
+                        onClose={() => setEditingField(null)}
+                      />
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''}`} onClick={canEdit ? (e) => {
+                      e.preventDefault()
+                      setEditingField({requestId: request.id, field: 'priority'})
+                    } : undefined}>
                       <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
-                      <span className="capitalize font-medium text-gray-700">{request.priority}</span>
+                      <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>
+                        {request.priority}
+                      </span>
                     </div>
                   )}
                 </div>
                 <div className="col-span-1 text-gray-500">
                   {formatDate(request.updated_at)}
                 </div>
-                <div className="col-span-1" onClick={(e) => {
-                  e.preventDefault()
-                  setEditingField({requestId: request.id, field: 'due_date'})
-                }}>
-                  {editingField?.requestId === request.id && editingField?.field === 'due_date' ? (
+                <div className="col-span-1">
+                  {editingField?.requestId === request.id && editingField?.field === 'due_date' && canEdit ? (
                     <div className="relative w-full max-w-[150px]">
                       <input
                         type="date"
@@ -887,7 +1027,10 @@ export default function RequestsPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="inline-flex items-center px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                    <div className={`inline-flex items-center px-2 py-1 rounded-md ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''}`} onClick={canEdit ? (e) => {
+                      e.preventDefault()
+                      setEditingField({requestId: request.id, field: 'due_date'})
+                    } : undefined}>
                       <span className="text-gray-500">{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
                     </div>
                   )}
@@ -917,13 +1060,15 @@ export default function RequestsPage() {
                   </p>
                 </Link>
               </div>
-              <div className="flex items-center gap-2 ml-3">
-                <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
-              </div>
+              {!isImpersonating && (
+                <div className="flex items-center gap-2 ml-3">
+                  <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-xs">
-              {isAdmin && (
+              {effectiveRole === 'admin' && (
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
                   <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
@@ -934,20 +1079,19 @@ export default function RequestsPage() {
               <div>
                 <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${getStatusStyle(request.status).dot}`}></div>
-                  <span className={`capitalize font-medium text-xs ${getStatusStyle(request.status).text}`}>
-                    {request.status.replace('_', ' ')}
-                  </span>
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                      {request.status.replace(/_/g, ' ')}
+                    </span>
                 </div>
               </div>
 
-              {isAdmin && (
+              {effectiveRole === 'admin' && (
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
                       <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                       </svg>
                     </div>
                     <span className="text-gray-600 text-xs">{getMemberName(request.assigned_to) || 'None'}</span>
@@ -959,7 +1103,7 @@ export default function RequestsPage() {
                 <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
-                  <span className={`capitalize font-medium text-xs ${getPriorityStyle(request.priority).text}`}>
+                  <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>
                     {request.priority}
                   </span>
                 </div>
@@ -999,38 +1143,44 @@ export default function RequestsPage() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-gray-500">Rows per page</span>
-              <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                <option>15</option>
-                <option>25</option>
-                <option>50</option>
-              </select>
+          {!isImpersonating ? (
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="text-xs text-gray-500">Rows per page</span>
+                <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                  <option>15</option>
+                  <option>25</option>
+                  <option>50</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-              <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <button className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
-              </button>
+          ) : (
+            <div className="text-xs text-gray-500">
+              Read-only view
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

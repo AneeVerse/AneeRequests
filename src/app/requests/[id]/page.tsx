@@ -133,8 +133,9 @@ export default function RequestDetailPage() {
     switch (status) {
       case 'submitted': return 'text-blue-600'
       case 'in_progress': return 'text-yellow-600'
-      case 'in_review': return 'text-purple-600'
+      case 'pending_response': return 'text-orange-600'
       case 'completed': return 'text-green-600'
+      case 'closed': return 'text-purple-600'
       case 'cancelled': return 'text-gray-600'
       default: return 'text-gray-600'
     }
@@ -143,10 +144,11 @@ export default function RequestDetailPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500'
+      case 'urgent': return 'bg-red-600'
       case 'high': return 'bg-orange-500'
       case 'medium': return 'bg-yellow-500'
       case 'low': return 'bg-blue-500'
+      case 'none': return 'bg-gray-400'
       default: return 'bg-gray-400'
     }
   }
@@ -813,8 +815,9 @@ export default function RequestDetailPage() {
                   >
                     <option value="submitted">Submitted</option>
                     <option value="in_progress">In Progress</option>
-                    <option value="in_review">In Review</option>
+                    <option value="pending_response">Pending Response</option>
                     <option value="completed">Completed</option>
+                    <option value="closed">Closed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
                   <ChevronDown size={12} className="absolute right-0 top-1 text-gray-400 pointer-events-none" />
@@ -829,6 +832,7 @@ export default function RequestDetailPage() {
                     onChange={(e) => handleFieldUpdate('priority', e.target.value)}
                     className="text-sm border-0 bg-transparent focus:ring-0 pr-6 capitalize cursor-pointer text-gray-500"
                   >
+                    <option value="none">None</option>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>

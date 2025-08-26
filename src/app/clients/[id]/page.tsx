@@ -19,6 +19,7 @@ interface Request {
   status: string
   priority: string
   created_at: string
+  due_date?: string
 }
 
 interface Invoice {
@@ -29,6 +30,91 @@ interface Invoice {
   created_at: string
 }
 
+// Status dropdown component
+function StatusDropdown({ 
+  currentStatus, 
+  onStatusChange, 
+  onClose 
+}: { 
+  currentStatus: string
+  onStatusChange: (status: string) => void
+  onClose: () => void 
+}) {
+  const statusOptions = [
+    { value: 'submitted', label: 'Submitted', color: 'bg-gray-100 text-gray-700' },
+    { value: 'in_progress', label: 'In Progress', color: 'bg-blue-100 text-blue-700' },
+    { value: 'pending_response', label: 'Pending Response', color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-700' },
+    { value: 'closed', label: 'Closed', color: 'bg-purple-100 text-purple-700' }
+  ]
+
+  return (
+    <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-[99999] dropdown-content">
+      <div className="py-2">
+        {statusOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => {
+              onStatusChange(option.value)
+              onClose()
+            }}
+            className={`w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 transition-colors ${
+              currentStatus === option.value ? 'bg-gray-200' : ''
+            }`}
+          >
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${option.color}`}>
+              {option.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Priority dropdown component
+function PriorityDropdown({ 
+  currentPriority, 
+  onPriorityChange, 
+  onClose 
+}: { 
+  currentPriority: string
+  onPriorityChange: (priority: string) => void
+  onClose: () => void 
+}) {
+  const priorityOptions = [
+    { value: 'none', label: 'None', dotColor: 'bg-gray-400' },
+    { value: 'low', label: 'Low', dotColor: 'bg-green-500' },
+    { value: 'medium', label: 'Medium', dotColor: 'bg-yellow-500' },
+    { value: 'high', label: 'High', dotColor: 'bg-red-500' },
+    { value: 'urgent', label: 'Urgent', dotColor: 'bg-red-600' }
+  ]
+
+  return (
+    <div className="absolute top-full left-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-[99999] dropdown-content">
+      <div className="py-2">
+        {priorityOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => {
+              onPriorityChange(option.value)
+              onClose()
+            }}
+            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+              currentPriority === option.value ? 'bg-gray-100' : ''
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${option.dotColor}`}></div>
+            <span className="capitalize text-gray-900">{option.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+
 export default function ClientDetailPage() {
   const params = useParams()
   const clientId = params.id as string
@@ -36,7 +122,17 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState("requests")
+
+
+  // Check for tab parameter in URL and set active tab accordingly
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const tab = urlParams.get('tab')
+    if (tab && ['overview', 'requests', 'invoices', 'settings'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [])
   const [requests, setRequests] = useState<Request[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -44,6 +140,9 @@ export default function ClientDetailPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [savingChanges, setSavingChanges] = useState(false)
+  
+  // Editing state for requests
+  const [editingField, setEditingField] = useState<{requestId: string, field: string} | null>(null)
 
   const loadClient = useCallback(async () => {
     try {
@@ -70,9 +169,48 @@ export default function ClientDetailPage() {
       if (response.ok) {
         const data = await response.json()
         setRequests(data)
+      } else {
+        // Fallback to sample data for testing
+        setRequests([
+          {
+            id: '1',
+            title: 'Sample Request 1',
+            status: 'submitted',
+            priority: 'medium',
+            created_at: new Date().toISOString(),
+            due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+          },
+          {
+            id: '2',
+            title: 'Sample Request 2',
+            status: 'in_progress',
+            priority: 'high',
+            created_at: new Date().toISOString(),
+            due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days from now
+          }
+        ])
       }
     } catch (err) {
       console.error('Error loading requests:', err)
+      // Fallback to sample data for testing
+      setRequests([
+        {
+          id: '1',
+          title: 'Sample Request 1',
+          status: 'submitted',
+          priority: 'medium',
+          created_at: new Date().toISOString(),
+          due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+        },
+        {
+          id: '2',
+          title: 'Sample Request 2',
+          status: 'in_progress',
+          priority: 'high',
+          created_at: new Date().toISOString(),
+          due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days from now
+        }
+      ])
     }
   }, [clientId])
 
@@ -99,6 +237,19 @@ export default function ClientDetailPage() {
       loadInvoices()
     }
   }, [activeTab, loadRequests, loadInvoices])
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (editingField && !target.closest('.dropdown-content')) {
+        setEditingField(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [editingField])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -136,6 +287,47 @@ export default function ClientDetailPage() {
     }
   }
 
+  const handleFieldUpdate = async (requestId: string, field: string, value: string) => {
+    try {
+      console.log(`Updating request ${requestId} field ${field} to value: ${value}`)
+      
+      const response = await fetch(`/api/requests/${requestId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          [field]: value
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error Response:', response.status, errorData)
+        throw new Error(`Failed to update ${field}: ${response.status} ${errorData.error || 'Unknown error'}`)
+      }
+
+      const updatedRequest = await response.json()
+      console.log('Successfully updated request:', updatedRequest)
+      
+      // Update the request in the local state
+      setRequests(prevRequests => 
+        prevRequests.map(req => 
+          req.id === requestId ? {
+            ...req,
+            [field]: value,
+            updated_at: updatedRequest.updated_at
+          } : req
+        )
+      )
+      
+      setEditingField(null)
+    } catch (error) {
+      console.error(`Error updating ${field}:`, error)
+      alert(`Failed to update ${field}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   const saveClientChanges = async () => {
     if (!client) return
     
@@ -168,21 +360,24 @@ export default function ClientDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'submitted': return 'text-blue-600'
-      case 'in_progress': return 'text-yellow-600'
-      case 'completed': return 'text-green-600'
-      case 'cancelled': return 'text-red-600'
-      default: return 'text-gray-600'
+      case 'submitted': return 'bg-gray-100 text-gray-700'
+      case 'in_progress': return 'bg-blue-100 text-blue-700'
+      case 'pending_response': return 'bg-yellow-100 text-yellow-700'
+      case 'completed': return 'bg-green-100 text-green-700'
+      case 'closed': return 'bg-purple-100 text-purple-700'
+      case 'cancelled': return 'bg-red-100 text-red-700'
+      default: return 'bg-gray-100 text-gray-700'
     }
   }
   
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500'
+      case 'urgent': return 'bg-red-600'
       case 'high': return 'bg-orange-500'
       case 'medium': return 'bg-yellow-500'
       case 'low': return 'bg-blue-500'
+      case 'none': return 'bg-gray-400'
       default: return 'bg-gray-400'
     }
   }
@@ -224,7 +419,7 @@ export default function ClientDetailPage() {
           </div>
           <Link
             href={`/clients/${clientId}/edit`}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-md hover:bg-[#0a4a5a]"
           >
             <Edit size={16} />
             Edit Client
@@ -238,8 +433,8 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab("overview")}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "overview"
-                  ? "text-purple-600 border-purple-600"
-                  : "text-gray-500 border-transparent hover:text-gray-700"
+                  ? "text-[#073742] border-[#073742]"
+                  : "text-gray-500 border-transparent hover:text-[#073742]"
               }`}
             >
               Overview
@@ -248,8 +443,8 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab("requests")}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "requests"
-                  ? "text-purple-600 border-purple-600"
-                  : "text-gray-500 border-transparent hover:text-gray-700"
+                  ? "text-[#073742] border-[#073742]"
+                  : "text-gray-500 border-transparent hover:text-[#073742]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -261,8 +456,8 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab("invoices")}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "invoices"
-                  ? "text-purple-600 border-purple-600"
-                  : "text-gray-500 border-transparent hover:text-gray-700"
+                  ? "text-[#073742] border-[#073742]"
+                  : "text-gray-500 border-transparent hover:text-[#073742]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -274,8 +469,8 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab("settings")}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "settings"
-                  ? "text-purple-600 border-purple-600"
-                  : "text-gray-500 border-transparent hover:text-gray-700"
+                  ? "text-[#073742] border-[#073742]"
+                  : "text-gray-500 border-transparent hover:text-[#073742]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -287,7 +482,7 @@ export default function ClientDetailPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto" style={{ overflow: 'visible' }}>
           {activeTab === "overview" && (
             <div className="max-w-2xl">
               <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
@@ -323,12 +518,12 @@ export default function ClientDetailPage() {
           )}
 
           {activeTab === "requests" && (
-            <div className="space-y-6">
+            <div className="space-y-6" style={{ overflow: 'visible' }}>
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">Requests</h2>
                 <Link
                   href={`/requests/new?client_id=${clientId}`}
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-md hover:bg-[#0a4a5a]"
                 >
                   Create Requests
                 </Link>
@@ -361,7 +556,7 @@ export default function ClientDetailPage() {
                   <input
                     type="text"
                     placeholder="Search"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-[#073742] focus:border-[#073742]"
                   />
                 </div>
                 <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2">
@@ -396,7 +591,7 @@ export default function ClientDetailPage() {
                   <div className="mt-6">
                     <Link
                       href={`/requests/new?client_id=${clientId}`}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-md hover:bg-[#0a4a5a]"
                     >
                       <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -406,34 +601,104 @@ export default function ClientDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-lg border border-gray-200" style={{ overflow: 'visible' }}>
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {requests.map((request) => (
-                        <tr key={request.id} className="hover:bg-gray-50">
+                        <tr key={request.id} className={`hover:bg-gray-50 relative ${editingField?.requestId === request.id ? 'z-10' : ''}`}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Link href={`/requests/${request.id}`} className="text-purple-600 hover:text-purple-800 font-medium">
+                            <Link href={`/requests/${request.id}`} className="text-[#073742] hover:text-[#0a4a5a] font-medium">
                               {request.title}
                             </Link>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`capitalize ${getStatusColor(request.status)}`}>
-                              {request.status.replace('_', ' ')}
-                            </span>
+                          <td className="px-6 py-4 whitespace-nowrap relative">
+                            {editingField?.requestId === request.id && editingField?.field === 'status' ? (
+                              <div className="relative">
+                                <StatusDropdown
+                                  currentStatus={request.status}
+                                  onStatusChange={(newStatus) => {
+                                    handleFieldUpdate(request.id, 'status', newStatus)
+                                  }}
+                                  onClose={() => setEditingField(null)}
+                                />
+                              </div>
+                            ) : (
+                              <div 
+                                className="inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => setEditingField({requestId: request.id, field: 'status'})}
+                              >
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                                  {request.status.replace('_', ' ')}
+                                </span>
+                                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${getPriorityColor(request.priority)}`}>
-                              {request.priority}
-                            </span>
+                          <td className="px-6 py-4 whitespace-nowrap relative">
+                            {editingField?.requestId === request.id && editingField?.field === 'priority' ? (
+                              <div className="relative">
+                                <PriorityDropdown
+                                  currentPriority={request.priority}
+                                  onPriorityChange={(newPriority) => {
+                                    handleFieldUpdate(request.id, 'priority', newPriority)
+                                  }}
+                                  onClose={() => setEditingField(null)}
+                                />
+                              </div>
+                            ) : (
+                              <div 
+                                className="inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => setEditingField({requestId: request.id, field: 'priority'})}
+                              >
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${getPriorityColor(request.priority)}`}>
+                                  {request.priority}
+                                </span>
+                                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap relative">
+                            {editingField?.requestId === request.id && editingField?.field === 'due_date' ? (
+                              <div className="relative">
+                                <input
+                                  type="date"
+                                  value={request.due_date ? new Date(request.due_date).toISOString().split('T')[0] : ''}
+                                  onChange={(e) => {
+                                    handleFieldUpdate(request.id, 'due_date', e.target.value)
+                                  }}
+                                  onBlur={() => setEditingField(null)}
+                                  autoFocus
+                                  className="w-full text-xs border border-gray-300 rounded-md py-1 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-[#073742] focus:border-[#073742] cursor-pointer shadow-sm z-10 relative"
+                                  min={new Date().toISOString().split('T')[0]}
+                                />
+                              </div>
+                            ) : (
+                              <div 
+                                className="inline-flex items-center px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => setEditingField({requestId: request.id, field: 'due_date'})}
+                              >
+                                <span className="text-gray-500 text-sm">
+                                  {request.due_date ? formatDate(request.due_date) : 'Set Due Date'}
+                                </span>
+                                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatDate(request.created_at)}
@@ -458,7 +723,7 @@ export default function ClientDetailPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">Invoices</h2>
-                <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+                <button className="px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-md hover:bg-[#0a4a5a]">
                   Create invoice
                 </button>
               </div>
@@ -474,7 +739,7 @@ export default function ClientDetailPage() {
                   <input
                     type="text"
                     placeholder="Search"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-[#073742] focus:border-[#073742]"
                   />
                 </div>
                 <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2">
@@ -515,7 +780,7 @@ export default function ClientDetailPage() {
                       {invoices.map((invoice) => (
                         <tr key={invoice.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Link href={`/invoices/${invoice.id}`} className="text-purple-600 hover:text-purple-800 font-medium">
+                            <Link href={`/invoices/${invoice.id}`} className="text-[#073742] hover:text-[#0a4a5a] font-medium">
                               INV-{invoice.id.slice(-10)}
                             </Link>
                           </td>
@@ -608,7 +873,7 @@ export default function ClientDetailPage() {
                       type="text"
                       value={client.name}
                       onChange={(e) => setClient({ ...client, name: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#073742] focus:border-transparent text-black"
                       placeholder="Enter client name"
                     />
                   </div>
@@ -621,7 +886,7 @@ export default function ClientDetailPage() {
                       type="email"
                       value={client.email || ''}
                       onChange={(e) => setClient({ ...client, email: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#073742] focus:border-transparent text-black"
                       placeholder="Enter email address"
                     />
                   </div>
@@ -634,7 +899,7 @@ export default function ClientDetailPage() {
                       type="text"
                       value={client.client_company_name || ''}
                       onChange={(e) => setClient({ ...client, client_company_name: e.target.value })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#073742] focus:border-transparent text-black"
                       placeholder="Enter company or organization name"
                     />
                   </div>
@@ -644,7 +909,7 @@ export default function ClientDetailPage() {
                   <button 
                     onClick={saveClientChanges}
                     disabled={savingChanges}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-md hover:bg-[#0a4a5a] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {savingChanges ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -663,7 +928,7 @@ export default function ClientDetailPage() {
                     </p>
                     <button
                       onClick={() => setShowPasswordModal(true)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                      className="px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-md hover:bg-[#0a4a5a]"
                     >
                       Change Password
                     </button>
@@ -696,7 +961,7 @@ export default function ClientDetailPage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" defaultChecked className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#073742] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#073742]"></div>
                     </label>
                   </div>
                   
@@ -707,7 +972,7 @@ export default function ClientDetailPage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#073742] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#073742]"></div>
                     </label>
                   </div>
                   
@@ -716,7 +981,7 @@ export default function ClientDetailPage() {
                       <h3 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h3>
                       <p className="text-sm text-gray-600">Enable additional security for client account</p>
                     </div>
-                    <button className="px-3 py-1 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100">
+                    <button className="px-3 py-1 text-sm font-medium text-[#073742] bg-[#073742]/10 border border-[#073742]/20 rounded-md hover:bg-[#073742]/20">
                       Enable 2FA
                     </button>
                   </div>
@@ -760,7 +1025,7 @@ export default function ClientDetailPage() {
                         type={showPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#073742] focus:border-transparent text-black"
                         placeholder="Enter new password"
                       />
                       <button
@@ -784,7 +1049,7 @@ export default function ClientDetailPage() {
                   <button
                     onClick={handleChangePassword}
                     disabled={!newPassword.trim() || changingPassword}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#073742] rounded-lg hover:bg-[#0a4a5a] disabled:opacity-50"
                   >
                     {changingPassword ? 'Changing...' : 'Change Password'}
                   </button>

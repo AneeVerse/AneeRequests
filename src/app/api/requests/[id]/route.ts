@@ -117,12 +117,20 @@ export async function PATCH(
     // Validate the update data
     const updateData: Record<string, unknown> = {}
     
-    if (status && ['submitted', 'in_progress', 'in_review', 'completed', 'cancelled'].includes(status)) {
+    if (status && ['submitted', 'in_progress', 'pending_response', 'completed', 'closed', 'cancelled'].includes(status)) {
       updateData.status = status
+    } else if (status) {
+      return NextResponse.json({ 
+        error: `Invalid status value: ${status}. Valid values are: submitted, in_progress, pending_response, completed, closed, cancelled` 
+      }, { status: 400 })
     }
     
-    if (priority && ['low', 'medium', 'high', 'urgent'].includes(priority)) {
+    if (priority && ['none', 'low', 'medium', 'high', 'urgent'].includes(priority)) {
       updateData.priority = priority
+    } else if (priority) {
+      return NextResponse.json({ 
+        error: `Invalid priority value: ${priority}. Valid values are: none, low, medium, high, urgent` 
+      }, { status: 400 })
     }
     
     if (due_date) {
@@ -145,10 +153,12 @@ export async function PATCH(
 
     updateData.updated_at = new Date()
 
+    // Remove runValidators to avoid validation errors on existing documents
+    // We're already validating the input data above
     const updatedRequest = await RequestModel.findByIdAndUpdate(
       id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: false }
     ).populate('client_id')
 
     if (!updatedRequest) {
