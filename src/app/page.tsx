@@ -40,8 +40,6 @@ export default function DashboardPage() {
   })
   
   // When impersonating, show admin interface but with client's data
-  const isImpersonating = (user?.id || '').startsWith('impersonated-')
-  const effectiveRole = isImpersonating ? 'admin' : user?.role
   const [recentRequests, setRecentRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +50,10 @@ export default function DashboardPage() {
       setLoading(true)
       setError(null)
       
-      if (user?.role === 'admin') {
+      const isImpersonating = (user?.id || '').startsWith('impersonated-')
+      const effectiveRole = isImpersonating ? 'admin' : user?.role
+      
+      if (user?.role === 'admin' && !isImpersonating) {
         // Admin sees all data
         const response = await fetch('/api/dashboard/stats')
         
@@ -67,8 +68,9 @@ export default function DashboardPage() {
       } else if (user?.role === 'client') {
         // Client sees only their own requests
         let url = '/api/requests'
-        if ((user as { clientId?: string })?.clientId) {
-          url = `/api/requests?client_id=${encodeURIComponent((user as { clientId: string }).clientId)}`
+        const clientId = (user as { clientId?: string })?.clientId
+        if (clientId) {
+          url = `/api/requests?client_id=${encodeURIComponent(clientId)}`
         }
         const response = await fetch(url)
         
@@ -90,8 +92,9 @@ export default function DashboardPage() {
       } else if (isImpersonating && effectiveRole === 'admin') {
         // When impersonating a client, show admin interface but with client's data
         let url = '/api/requests'
-        if ((user as any)?.clientId) {
-          url = `/api/requests?client_id=${encodeURIComponent((user as any).clientId)}`
+        const clientId = (user as { clientId?: string })?.clientId
+        if (clientId) {
+          url = `/api/requests?client_id=${encodeURIComponent(clientId)}`
         }
         const response = await fetch(url)
         
@@ -155,7 +158,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.role, user?.id])
+  }, [user])
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -264,7 +267,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {effectiveRole === 'admin' ? 'CLIENTS' : 'PROJECTS'}
+              {user?.role === 'admin' ? 'CLIENTS' : 'PROJECTS'}
             </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.clients}
@@ -273,7 +276,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {effectiveRole === 'admin' ? 'REQUESTS' : 'MY REQUESTS'}
+              {user?.role === 'admin' ? 'REQUESTS' : 'MY REQUESTS'}
             </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.requests}
@@ -338,7 +341,7 @@ export default function DashboardPage() {
             <button className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 whitespace-nowrap shadow-sm">
               All
             </button>
-            {effectiveRole === 'admin' && (
+            {user?.role === 'admin' && (
               <button className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 whitespace-nowrap shadow-sm">
                 Unassigned
               </button>
@@ -354,16 +357,16 @@ export default function DashboardPage() {
           {/* Table Headers */}
           <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50">
             <div className="col-span-1 flex items-center">
-              {!isImpersonating && (
+              {user?.role !== 'admin' && (
                 <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
               )}
             </div>
             <div className="col-span-3">TITLE</div>
-            {effectiveRole === 'admin' && (
+            {user?.role === 'admin' && (
               <div className="col-span-2">CLIENT</div>
             )}
             <div className="col-span-1">STATUS</div>
-            {effectiveRole === 'admin' && (
+            {user?.role === 'admin' && (
               <div className="col-span-1">ASSIGNED TO</div>
             )}
             <div className="col-span-1 flex items-center gap-1">
@@ -426,7 +429,7 @@ export default function DashboardPage() {
                 className="grid grid-cols-12 gap-4 px-4 py-4 text-xs border-b border-gray-200 hover:bg-gray-50 cursor-pointer last:border-b-0"
               >
                 <div className="col-span-1 flex items-center">
-                  {!isImpersonating && (
+                  {user?.role !== 'admin' && (
                     <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
                   )}
                 </div>
@@ -436,7 +439,7 @@ export default function DashboardPage() {
                     {request.description ? request.description.substring(0, 50) + '...' : 'No description'}
                   </div>
                 </div>
-                {effectiveRole === 'admin' && (
+                {user?.role === 'admin' && (
                   <div className="col-span-2">
                     <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
                     <div className="text-gray-500 text-xs">Individual</div>
@@ -447,7 +450,7 @@ export default function DashboardPage() {
                     {request.status ? request.status.replace('_', ' ') : 'Unknown'}
                   </span>
                 </div>
-                {effectiveRole === 'admin' && (
+                {user?.role === 'admin' && (
                   <div className="col-span-1">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
@@ -493,7 +496,7 @@ export default function DashboardPage() {
                   <h3 className="font-medium text-gray-900 text-xs mb-1 truncate">{request.title || 'Untitled Request'}</h3>
                   <p className="text-gray-500 text-xs">{request.description ? request.description.substring(0, 50) + '...' : 'No description'}</p>
                 </div>
-                              {!isImpersonating && (
+                              {user?.role !== 'admin' && (
                 <div className="flex items-center gap-2 ml-3">
                   <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded" />
                 </div>
@@ -501,7 +504,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-xs">
-                {effectiveRole === 'admin' && (
+                {user?.role === 'admin' && (
                   <div>
                     <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
                     <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
@@ -519,7 +522,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {effectiveRole === 'admin' && (
+                {user?.role === 'admin' && (
                   <div>
                     <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
                     <div className="flex items-center gap-2">
@@ -557,7 +560,11 @@ export default function DashboardPage() {
             <div className="text-xs text-gray-500 text-center sm:text-left">
               Showing {recentRequests.length} of {stats.requests} total requests
             </div>
-            {!isImpersonating ? (
+            {user?.role !== 'admin' ? (
+              <div className="text-xs text-gray-500">
+                Read-only view
+              </div>
+            ) : (
               <div className="flex items-center gap-4">
                 <div className="hidden sm:flex items-center gap-2">
                   <span className="text-xs text-gray-500">Rows per page</span>
@@ -588,10 +595,6 @@ export default function DashboardPage() {
                     </svg>
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500">
-                Read-only view
               </div>
             )}
           </div>

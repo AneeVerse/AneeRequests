@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Filter, List, Plus, Bell, ChevronDown, ChevronUp, X, Search } from "lucide-react"
+import { Filter, List, Plus, Bell, ChevronDown, X, Search } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import { ClientUser } from "@/lib/types/auth"
@@ -325,7 +325,7 @@ export default function RequestsPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.role, user?.id])
+  }, [user])
 
   // Load clients and organizations for filters
   const loadFilterData = useCallback(async () => {
@@ -523,8 +523,6 @@ export default function RequestsPage() {
     return decoded.replace(/\s+/g, ' ').trim()
   }
 
-  const isAdmin = user?.role === 'admin'
-  const isClient = user?.role === 'client'
   const isImpersonating = (user?.id || '').startsWith('impersonated-')
   // When impersonating, show admin interface but with client's data
   const effectiveRole = isImpersonating ? 'admin' : user?.role

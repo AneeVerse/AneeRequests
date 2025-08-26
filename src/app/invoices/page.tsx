@@ -81,7 +81,7 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.role, user?.id])
+  }, [user])
 
   // Filter invoices based on search and filters
   const filterInvoices = useCallback(() => {

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import { Request } from '@/lib/models/schemas'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     await connectDB()
     
