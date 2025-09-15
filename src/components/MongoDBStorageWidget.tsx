@@ -3,14 +3,14 @@ import { useState, useEffect } from 'react'
 import { Database, HardDrive, Users, FileText, Activity } from 'lucide-react'
 
 interface StorageStats {
-  totalSize: number
-  totalCapacity: number
-  remainingStorage: number
-  usagePercentage: number
-  collections: number
-  documents: number
-  indexes: number
-  lastUpdated: string
+  totalSize?: number
+  totalCapacity?: number
+  remainingStorage?: number
+  usagePercentage?: number
+  collections?: number
+  documents?: number
+  indexes?: number
+  lastUpdated?: string
 }
 
 export default function MongoDBStorageWidget() {
@@ -36,18 +36,30 @@ export default function MongoDBStorageWidget() {
           throw new Error('Failed to fetch storage stats')
         }
         const data = await response.json()
-        setStats(data)
+        console.log('Storage stats API response:', data)
+        // Use the real data from the API
+        setStats({
+          totalSize: data.database?.totalSize || 0,
+          totalCapacity: data.database?.totalCapacity || 512,
+          remainingStorage: data.database?.remainingStorage || 512,
+          usagePercentage: data.database?.usagePercentage || 0,
+          collections: data.database?.collections || 0,
+          documents: data.requests?.total || 0,
+          indexes: data.database?.indexes || 0,
+          lastUpdated: new Date().toISOString()
+        })
       } catch (error) {
         console.error('Failed to fetch storage stats:', error)
         // Fallback to mock data if API fails
+        const mockUsage = Math.floor(Math.random() * 50) + 10 // 10-60 MB
         const mockStats: StorageStats = {
-          totalSize: Math.floor(Math.random() * 100) + 10, // MB
+          totalSize: mockUsage,
           totalCapacity: 512,
-          remainingStorage: 512 - (Math.floor(Math.random() * 100) + 10),
-          usagePercentage: Math.floor(Math.random() * 20) + 5,
-          collections: Math.floor(Math.random() * 20) + 5,
-          documents: Math.floor(Math.random() * 10000) + 1000,
-          indexes: Math.floor(Math.random() * 50) + 10,
+          remainingStorage: 512 - mockUsage,
+          usagePercentage: Math.round((mockUsage / 512) * 100),
+          collections: Math.floor(Math.random() * 15) + 5,
+          documents: Math.floor(Math.random() * 5000) + 500,
+          indexes: Math.floor(Math.random() * 30) + 5,
           lastUpdated: new Date().toISOString()
         }
         setStats(mockStats)
@@ -72,7 +84,8 @@ export default function MongoDBStorageWidget() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | undefined) => {
+    if (num === undefined || num === null) return '0'
     return num.toLocaleString()
   }
 
@@ -121,7 +134,7 @@ export default function MongoDBStorageWidget() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold text-gray-900">{stats.usagePercentage}%</p>
+              <p className="text-lg font-semibold text-gray-900">{stats.usagePercentage || 0}%</p>
               <p className="text-xs text-gray-500">used</p>
             </div>
           </div>
@@ -129,23 +142,23 @@ export default function MongoDBStorageWidget() {
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
             <div 
-              className={`h-2 rounded-full transition-all duration-300 ${getUsageColor(stats.usagePercentage)}`}
-              style={{ width: `${Math.min(stats.usagePercentage, 100)}%` }}
+              className={`h-2 rounded-full transition-all duration-300 ${getUsageColor(stats.usagePercentage || 0)}`}
+              style={{ width: `${Math.min(stats.usagePercentage || 0, 100)}%` }}
             ></div>
           </div>
           
           {/* Storage Details */}
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="text-center">
-              <p className="font-medium text-gray-900">{formatBytes(stats.totalSize * 1024 * 1024)}</p>
+              <p className="font-medium text-gray-900">{formatBytes((stats.totalSize || 0) * 1024 * 1024)}</p>
               <p className="text-gray-500">Used</p>
             </div>
             <div className="text-center">
-              <p className="font-medium text-gray-900">{formatBytes(stats.remainingStorage * 1024 * 1024)}</p>
+              <p className="font-medium text-gray-900">{formatBytes((stats.remainingStorage || 0) * 1024 * 1024)}</p>
               <p className="text-gray-500">Available</p>
             </div>
             <div className="text-center">
-              <p className="font-medium text-gray-900">{formatBytes(stats.totalCapacity * 1024 * 1024)}</p>
+              <p className="font-medium text-gray-900">{formatBytes((stats.totalCapacity || 0) * 1024 * 1024)}</p>
               <p className="text-gray-500">Total</p>
             </div>
           </div>
@@ -201,7 +214,7 @@ export default function MongoDBStorageWidget() {
       <div className="mt-6 pt-4 border-t border-gray-200">
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>Last updated</span>
-          <span>{new Date(stats.lastUpdated).toLocaleTimeString()}</span>
+          <span>{stats.lastUpdated ? new Date(stats.lastUpdated).toLocaleTimeString() : 'Unknown'}</span>
         </div>
         <div className="flex items-center gap-2 mt-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
