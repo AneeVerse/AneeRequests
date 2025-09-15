@@ -67,6 +67,7 @@ const invoiceSchema = new mongoose.Schema({
   due_date: Date,
   payment_method: String,
   payment_reference: String,
+  currency: { type: String, default: 'USD' },
   status: { type: String, enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'], default: 'draft' }, // Changed 'pending' to 'sent'
   line_items: [{
     description: { type: String, required: true },

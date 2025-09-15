@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       due_date,
       payment_method,
       payment_reference,
+      currency,
       status,
       line_items,
       tax_amount,
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
       due_date?: string
       payment_method?: string
       payment_reference?: string
+      currency?: string
       status?: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled'
       line_items: LineItemInput[]
       tax_amount?: number
@@ -187,6 +189,7 @@ export async function POST(request: NextRequest) {
       tax_amount: tax_amount || 0,
       total,
       notes,
+      currency: currency || 'USD',
       amount: total // Add the old 'amount' field for backward compatibility
     }
 

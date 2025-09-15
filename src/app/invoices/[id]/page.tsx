@@ -31,6 +31,7 @@ interface Invoice {
   due_date?: string
   payment_method?: string
   payment_reference?: string
+  currency?: string
   status: string
   line_items: LineItem[]
   subtotal: number
@@ -87,7 +88,7 @@ export default function InvoiceDetailPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: invoice?.currency || 'USD'
     }).format(amount)
   }
 

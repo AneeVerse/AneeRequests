@@ -36,6 +36,7 @@ export default function CreateInvoicePage() {
   const [dueDate, setDueDate] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
   const [paymentReference, setPaymentReference] = useState("")
+  const [currency, setCurrency] = useState("USD")
   const [notes, setNotes] = useState("")
   
   // Line items
@@ -147,6 +148,7 @@ export default function CreateInvoicePage() {
           due_date: dueDate || undefined,
           payment_method: paymentMethod || undefined,
           payment_reference: paymentReference || undefined,
+          currency,
           status,
           line_items: lineItems.map(item => ({
             description: item.description,
@@ -288,6 +290,24 @@ export default function CreateInvoicePage() {
                   placeholder="-"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                 />
+              </div>
+
+              {/* Currency */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Currency
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900"
+                >
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="INR">INR - Indian Rupee</option>
+                  <option value="GBP">GBP - British Pound</option>
+                  <option value="JPY">JPY - Japanese Yen</option>
+                </select>
               </div>
             </div>
 

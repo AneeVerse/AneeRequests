@@ -22,6 +22,7 @@ interface Invoice {
   payment_method?: string
   status: string
   total: number
+  currency?: string
   created_at: string
   updated_at: string
 }
@@ -199,10 +200,10 @@ export default function InvoicesPage() {
     })
   }
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency
     }).format(amount)
   }
 
@@ -538,7 +539,7 @@ export default function InvoicesPage() {
                     {formatDate(invoice.created_at)}
                   </div>
                   <div className="w-32 text-gray-900 font-medium">
-                    {formatCurrency(invoice.total)}
+                    {formatCurrency(invoice.total, invoice.currency || 'USD')}
                   </div>
                                      <div className="w-60 flex justify-end relative pr-2">
                      <button 
@@ -653,7 +654,7 @@ export default function InvoicesPage() {
                      {invoice.payment_method ? invoice.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '-'}
                    </div>
                    <div className="font-medium text-gray-900">
-                     {formatCurrency(invoice.total)}
+                     {formatCurrency(invoice.total, invoice.currency || 'USD')}
                    </div>
                  </div>
                  
