@@ -565,7 +565,8 @@ export default function InvoicesPage() {
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => {
                           setOpenMenuId(null)
-                          // Download functionality would go here
+                          // Navigate to detail page with auto-download flag
+                          window.location.href = `/invoices/${invoice.id}?download=1`
                         }}
                       >
                         <Download size={16} />

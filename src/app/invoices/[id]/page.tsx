@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Download, Mail, CheckCircle, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
@@ -44,6 +44,7 @@ interface Invoice {
 export default function InvoiceDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
@@ -149,6 +150,95 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  const buildPrintableHtml = (invoice: Invoice) => {
+    const lineItemsRows = invoice.line_items.map(item => `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${item.description}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">$${item.rate.toFixed(2)}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${item.quantity}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">$${item.line_total.toFixed(2)}</td>
+      </tr>
+    `).join('')
+
+    return `<!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Invoice ${invoice.invoice_number}</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color:#111827; }
+        .container { max-width: 800px; margin: 24px auto; padding: 0 16px; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+        .title { font-size:20px; font-weight:600; }
+        .muted { color:#6B7280; }
+        table { width:100%; border-collapse:collapse; }
+        th { font-size:12px; text-transform:uppercase; color:#6B7280; text-align:left; padding:8px; background:#F9FAFB; border-bottom:1px solid #E5E7EB; }
+        tfoot td { font-weight:600; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div>
+            <div class="title">Invoice ${invoice.invoice_number}</div>
+            <div class="muted">Date of Issue: ${new Date(invoice.date_of_issue).toLocaleDateString('en-US')}</div>
+          </div>
+          <div>
+            <div class="muted">Subtotal</div>
+            <div>$${invoice.subtotal.toFixed(2)}</div>
+            ${invoice.tax_amount > 0 ? `<div class="muted">Tax</div><div>$${invoice.tax_amount.toFixed(2)}</div>` : ''}
+            <div style="margin-top:8px;border-top:1px solid #E5E7EB;padding-top:8px;">Total: <strong>$${invoice.total.toFixed(2)}</strong></div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th style="text-align:right;">Rate</th>
+              <th style="text-align:right;">Quantity</th>
+              <th style="text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lineItemsRows}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td></td><td></td>
+              <td style="padding:8px;text-align:right;">Total</td>
+              <td style="padding:8px;text-align:right;">$${invoice.total.toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        ${invoice.notes ? `<div style="margin-top:24px;"><div style=\"font-weight:600; margin-bottom:8px;\">Notes</div><div class=\"muted\">${invoice.notes.replace(/</g,'&lt;')}</div></div>` : ''}
+      </div>
+      <script>window.onload = () => { setTimeout(() => window.print(), 300) }</script>
+    </body>
+    </html>`
+  }
+
+  const handleDownload = () => {
+    if (!invoice) return
+    const html = buildPrintableHtml(invoice)
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `invoice-${invoice.invoice_number}.html`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  // Auto-download when navigated with ?download=1
+  useEffect(() => {
+    if (invoice && searchParams?.get('download') === '1') {
+      handleDownload()
+    }
+  }, [invoice, searchParams])
+
   if (loading) {
     return (
       <RouteGuard>
@@ -206,7 +296,7 @@ export default function InvoiceDetailPage() {
             
             {user?.role !== 'client' && (
               <>
-                <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                <button onClick={handleDownload} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                   <Download size={16} />
                   Download
                 </button>
@@ -297,17 +387,17 @@ export default function InvoiceDetailPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Subtotal:</span>
-                      <span className="font-medium">{formatCurrency(invoice.subtotal)}</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(invoice.subtotal)}</span>
                     </div>
                     {invoice.tax_amount > 0 && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Tax:</span>
-                        <span className="font-medium">{formatCurrency(invoice.tax_amount)}</span>
+                        <span className="font-medium text-gray-900">{formatCurrency(invoice.tax_amount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg font-semibold border-t pt-3">
-                      <span>Total:</span>
-                      <span>{formatCurrency(invoice.total)}</span>
+                      <span className="text-gray-900">Total:</span>
+                      <span className="text-gray-900">{formatCurrency(invoice.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -336,7 +426,7 @@ export default function InvoiceDetailPage() {
                     <div className="col-span-2 text-right text-gray-600">
                       {item.quantity}
                     </div>
-                    <div className="col-span-2 text-right font-medium">
+                    <div className="col-span-2 text-right font-medium text-gray-900">
                       {formatCurrency(item.line_total)}
                     </div>
                   </div>
