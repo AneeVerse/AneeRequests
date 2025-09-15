@@ -253,9 +253,9 @@ export default function ClientDetailPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     })
   }
 
@@ -359,26 +359,31 @@ export default function ClientDetailPage() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted': return 'bg-gray-100 text-gray-700'
-      case 'in_progress': return 'bg-blue-100 text-blue-700'
-      case 'pending_response': return 'bg-yellow-100 text-yellow-700'
-      case 'completed': return 'bg-green-100 text-green-700'
-      case 'closed': return 'bg-purple-100 text-purple-700'
-      case 'cancelled': return 'bg-red-100 text-red-700'
-      default: return 'bg-gray-100 text-gray-700'
-    }
+    // Deprecated, keep for safety if referenced elsewhere
+    return 'bg-gray-100 text-gray-700'
   }
   
+  // Admin requests layout helpers for consistent pills
+  const getStatusStyle = (status: string) => {
+    const normalizedStatus = status.toLowerCase().replace(/[_\s]/g, '')
+    switch (normalizedStatus) {
+      case 'submitted': return { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' }
+      case 'inprogress': return { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' }
+      case 'pendingresponse': return { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' }
+      case 'completed': return { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' }
+      case 'closed': return { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' }
+      default: return { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' }
+    }
+  }
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityStyle = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-600'
-      case 'high': return 'bg-orange-500'
-      case 'medium': return 'bg-yellow-500'
-      case 'low': return 'bg-blue-500'
-      case 'none': return 'bg-gray-400'
-      default: return 'bg-gray-400'
+      case 'urgent': return { dot: 'bg-red-600', text: 'text-gray-900', bg: 'bg-red-100' }
+      case 'high': return { dot: 'bg-orange-500', text: 'text-gray-900', bg: 'bg-orange-100' }
+      case 'medium': return { dot: 'bg-yellow-500', text: 'text-gray-900', bg: 'bg-yellow-100' }
+      case 'low': return { dot: 'bg-blue-500', text: 'text-gray-900', bg: 'bg-blue-100' }
+      case 'none': return { dot: 'bg-gray-400', text: 'text-gray-900', bg: 'bg-gray-100' }
+      default: return { dot: 'bg-gray-400', text: 'text-gray-900', bg: 'bg-gray-100' }
     }
   }
 
@@ -637,8 +642,8 @@ export default function ClientDetailPage() {
                                 className="inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
                                 onClick={() => setEditingField({requestId: request.id, field: 'status'})}
                               >
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                                  {request.status.replace('_', ' ')}
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                                  {request.status.replace(/_/g, ' ')}
                                 </span>
                                 <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -662,9 +667,8 @@ export default function ClientDetailPage() {
                                 className="inline-flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
                                 onClick={() => setEditingField({requestId: request.id, field: 'priority'})}
                               >
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${getPriorityColor(request.priority)}`}>
-                                  {request.priority}
-                                </span>
+                                <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                                <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>{request.priority}</span>
                                 <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>

@@ -139,7 +139,10 @@ export default function DashboardPage() {
       setError(null)
       
       const isImpersonating = (user?.id || '').startsWith('impersonated-')
-      const effectiveRole = isImpersonating ? 'admin' : user?.role
+      const isImpersonatingTeamMember = (user?.id || '').startsWith('impersonated-team-')
+      const effectiveRole = isImpersonatingTeamMember ? user?.role : (isImpersonating ? 'admin' : user?.role)
+      
+      console.log('Dashboard load - User:', user, 'IsImpersonating:', isImpersonating, 'IsImpersonatingTeamMember:', isImpersonatingTeamMember, 'EffectiveRole:', effectiveRole)
       
       if (user?.role === 'admin' && !isImpersonating) {
         // Admin sees all data
@@ -201,7 +204,7 @@ export default function DashboardPage() {
           team: 0
         })
         setRecentRequests(clientRequests)
-      } else if (user?.role === 'member' || user?.role === 'viewer') {
+      } else if (user?.role === 'member' || user?.role === 'viewer' || isImpersonatingTeamMember) {
         // Team members: show only their assigned requests
         let url = '/api/requests'
         let memberId = user?.id
@@ -211,15 +214,21 @@ export default function DashboardPage() {
           memberId = (user?.id || '').replace('impersonated-team-', '')
         }
         
+        console.log('Team member dashboard - User ID:', user?.id, 'Member ID:', memberId)
+        
         if (memberId) {
           url = `/api/requests?team_member_id=${encodeURIComponent(memberId)}`
         }
+        
+        console.log('Fetching requests from URL:', url)
         
         const response = await fetch(url)
         if (!response.ok) {
           throw new Error('Failed to fetch requests data')
         }
         const requestsData = await response.json()
+        console.log('Team member requests data:', requestsData)
+        
         const assigned = requestsData
         setStats({
           revenue: 0,
@@ -304,38 +313,7 @@ export default function DashboardPage() {
     })
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted': return 'text-blue-600'
-      case 'in_progress': return 'text-yellow-600'
-      case 'in_review': return 'text-primary-600'
-      case 'completed': return 'text-green-600'
-      case 'cancelled': return 'text-gray-600'
-      default: return 'text-gray-600'
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-600'
-      case 'high': return 'bg-orange-500'
-      case 'medium': return 'bg-yellow-500'
-      case 'low': return 'bg-blue-500'
-      case 'none': return 'bg-gray-400'
-      default: return 'bg-gray-400'
-    }
-  }
-
-  const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case 'submitted': return 'bg-blue-500'
-      case 'in_progress': return 'bg-yellow-500'
-      case 'in_review': return 'bg-primary-500'
-      case 'completed': return 'bg-green-500'
-      case 'cancelled': return 'bg-gray-500'
-      default: return 'bg-gray-500'
-    }
-  }
+  // Admin requests layout helpers
 
   const getStatusStyle = (status: string) => {
     // Normalize the status to handle different formats
@@ -376,8 +354,9 @@ export default function DashboardPage() {
   }
 
   const isImpersonating = (user?.id || '').startsWith('impersonated-')
+  const isImpersonatingTeamMember = (user?.id || '').startsWith('impersonated-team-')
   // When impersonating, show admin interface but with client's data
-  const effectiveRole = isImpersonating ? 'admin' : user?.role
+  const effectiveRole = isImpersonatingTeamMember ? user?.role : (isImpersonating ? 'admin' : user?.role)
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -615,7 +594,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Desktop Table */}
+      {/* Desktop Table - aligned with admin Requests layout */}
       <div className="hidden lg:block flex-1 bg-white px-4 sm:px-6 py-6">
         {/* Table Header */}
         <div className="border border-gray-200 rounded-md overflow-hidden">
@@ -736,19 +715,19 @@ export default function DashboardPage() {
                   >
                     {request.title || 'Untitled Request'}
                   </Link>
-                  <div className="text-gray-500 text-xs mt-1">
+                  <div className="text-gray-500 mt-1 line-clamp-1">
                     {getDescriptionPreview(request.description) || 'No description'}
                   </div>
                 </div>
                 {effectiveRole === 'admin' && (
                   <div className="col-span-2">
                     <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
-                    <div className="text-gray-500 text-xs">Individual</div>
+                    <div className="text-gray-500">{/* organization if available */}</div>
                   </div>
                 )}
                 <div className="col-span-1">
-                  <span className={`text-xs font-medium capitalize ${getStatusColor(request.status)}`}>
-                    {request.status ? request.status.replace('_', ' ') : 'Unknown'}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                    {request.status ? request.status.replace(/_/g, ' ') : 'Unknown'}
                   </span>
                 </div>
                 {effectiveRole === 'admin' && (
@@ -763,18 +742,15 @@ export default function DashboardPage() {
                 )}
                 <div className="col-span-1">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
-                    <span className="text-gray-500 capitalize text-xs">{request.priority || 'None'}</span>
+                    <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                    <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>{request.priority || 'None'}</span>
                   </div>
                 </div>
                 <div className="col-span-1 text-gray-500 text-xs">
                   {request.updated_at ? formatDate(request.updated_at) : formatDate(request.created_at)}
                 </div>
                 <div className="col-span-1">
-                  <div className="flex items-center gap-1 text-gray-500 text-xs">
-                    <span>{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
-                    <ChevronDown size={12} />
-                  </div>
+                  <span className="text-gray-500 text-xs">{request.due_date ? formatDate(request.due_date) : 'Due Date'}</span>
                 </div>
                 <div className="col-span-1 text-gray-500 text-xs">
                   {request.created_at ? formatDate(request.created_at) : 'Unknown'}
@@ -812,16 +788,15 @@ export default function DashboardPage() {
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
                   <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
-                  <div className="text-gray-500 text-xs">Individual</div>
+                  <div className="text-gray-500 text-xs"></div>
                 </div>
               )}
               
               <div>
                 <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${getStatusBgColor(request.status)}`}></div>
-                  <span className={`capitalize font-medium text-xs ${getStatusColor(request.status)}`}>
-                    {request.status ? request.status.replace('_', ' ') : 'Unknown'}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                    {request.status ? request.status.replace(/_/g, ' ') : 'Unknown'}
                   </span>
                 </div>
               </div>
@@ -839,8 +814,8 @@ export default function DashboardPage() {
               <div>
                 <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${getPriorityColor(request.priority)}`}></div>
-                  <span className="text-gray-500 capitalize text-xs">{request.priority || 'None'}</span>
+                  <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                  <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>{request.priority || 'None'}</span>
                 </div>
               </div>
 
