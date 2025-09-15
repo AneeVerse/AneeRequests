@@ -52,7 +52,7 @@ function StatusDropdown({
           placeholder="Search or create a status"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
         />
       </div>
       <div className="py-2">
@@ -578,7 +578,7 @@ export default function RequestsPage() {
                 placeholder="Search"
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="w-full pl-9 pr-4 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm"
+                className="w-full pl-9 pr-4 py-2 text-xs text-gray-900 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm"
               />
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
               {filters.search && (
@@ -648,7 +648,7 @@ export default function RequestsPage() {
                   value={filters.client}
                   onChange={(e) => setFilters(prev => ({ ...prev, client: e.target.value }))}
                   disabled={filterDataLoading}
-                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                 >
                   <option value="">
                     {filterDataLoading ? 'Loading...' : 'All clients'}
@@ -670,7 +670,7 @@ export default function RequestsPage() {
                   value={filters.organization}
                   onChange={(e) => setFilters(prev => ({ ...prev, organization: e.target.value }))}
                   disabled={filterDataLoading}
-                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
                 >
                   <option value="">
                     {filterDataLoading ? 'Loading...' : 'All organizations'}
@@ -691,7 +691,7 @@ export default function RequestsPage() {
                 <select
                   value={filters.assignedTo}
                   onChange={(e) => setFilters(prev => ({ ...prev, assignedTo: e.target.value }))}
-                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">All members</option>
                   <option value="">Unassigned</option>
@@ -710,7 +710,7 @@ export default function RequestsPage() {
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="">All statuses</option>
                 <option value="submitted">Submitted</option>
@@ -727,7 +727,7 @@ export default function RequestsPage() {
               <select
                 value={filters.priority}
                 onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="">All priorities</option>
                 <option value="none">None</option>
@@ -745,7 +745,7 @@ export default function RequestsPage() {
                   type="date"
                   value={filters.dueDate}
                   onChange={(e) => setFilters(prev => ({ ...prev, dueDate: e.target.value }))}
-                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                 />
             </div>
 
@@ -756,7 +756,7 @@ export default function RequestsPage() {
                   type="date"
                   value={filters.createdDate}
                   onChange={(e) => setFilters(prev => ({ ...prev, createdDate: e.target.value }))}
-                  className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full text-xs text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                 />
             </div>
           </div>
