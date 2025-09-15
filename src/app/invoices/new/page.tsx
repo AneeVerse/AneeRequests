@@ -13,17 +13,11 @@ interface Client {
   }
 }
 
-interface ServiceCatalogItem {
-  id: string
-  title: string
-  description: string
-  price: number
-}
+// Service catalog removed; allow free-text services only
 
 interface LineItem {
   id: string
   description: string
-  service_catalog_item_id?: string
   rate: number
   quantity: number
   line_total: number
@@ -33,7 +27,6 @@ export default function CreateInvoicePage() {
   const router = useRouter()
   // const { user } = useAuth() // Commented out unused variable
   const [clients, setClients] = useState<Client[]>([])
-  const [services, setServices] = useState<ServiceCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
@@ -67,20 +60,15 @@ export default function CreateInvoicePage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [clientsResponse, servicesResponse] = await Promise.all([
-        fetch('/api/clients'),
-        fetch('/api/service-catalog')
+      const [clientsResponse] = await Promise.all([
+        fetch('/api/clients')
       ])
       
       if (clientsResponse.ok) {
         const clientsData = await clientsResponse.json()
         setClients(clientsData)
       }
-      
-      if (servicesResponse.ok) {
-        const servicesData = await servicesResponse.json()
-        setServices(servicesData)
-      }
+
     } catch (err) {
       console.error('Error loading data:', err)
     } finally {
@@ -123,14 +111,7 @@ export default function CreateInvoicePage() {
     setLineItems(lineItems.filter(item => item.id !== id))
   }
 
-  const selectService = (lineItemId: string, serviceId: string) => {
-    const service = services.find(s => s.id === serviceId)
-    if (service) {
-      updateLineItem(lineItemId, 'description', service.title)
-      updateLineItem(lineItemId, 'service_catalog_item_id', serviceId)
-      updateLineItem(lineItemId, 'rate', service.price || 0)
-    }
-  }
+  // No service catalog; description remains free text
 
   const handleSubmit = async (status: 'draft' | 'sent') => {
     if (!selectedClient) {
@@ -169,7 +150,6 @@ export default function CreateInvoicePage() {
           status,
           line_items: lineItems.map(item => ({
             description: item.description,
-            service_catalog_item_id: item.service_catalog_item_id || undefined,
             rate: item.rate,
             quantity: item.quantity,
             line_total: item.line_total
@@ -326,21 +306,7 @@ export default function CreateInvoicePage() {
                 {lineItems.map((item) => (
                   <div key={item.id} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200">
                     <div className="col-span-6">
-                      <div className="relative mb-2">
-                        <select
-                          value={item.service_catalog_item_id || ''}
-                          onChange={(e) => e.target.value ? selectService(item.id, e.target.value) : updateLineItem(item.id, 'service_catalog_item_id', '')}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white text-gray-900"
-                        >
-                          <option value="">Select service</option>
-                          {services.map((service) => (
-                            <option key={service.id} value={service.id}>
-                              {service.title}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown size={16} className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
-                      </div>
+                      {/* Free-text service description only */}
                       <input
                         type="text"
                         value={item.description}
