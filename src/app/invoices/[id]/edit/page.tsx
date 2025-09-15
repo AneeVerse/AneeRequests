@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { ChevronDown, Plus, Trash2 } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { ChevronDown, Plus, Trash2, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import RouteGuard from "@/components/RouteGuard"
 
 interface Client {
@@ -11,8 +12,6 @@ interface Client {
   client_company_name?: string
 }
 
-// Service catalog removed; allow free-text services only
-
 interface LineItem {
   id: string
   description: string
@@ -21,16 +20,36 @@ interface LineItem {
   line_total: number
 }
 
-export default function CreateInvoicePage() {
+interface Invoice {
+  id: string
+  invoice_number: string
+  client_id: string
+  client?: Client
+  date_of_issue: string
+  due_date?: string
+  payment_method?: string
+  payment_reference?: string
+  currency?: string
+  status: string
+  line_items: LineItem[]
+  subtotal: number
+  tax_amount: number
+  total: number
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export default function EditInvoicePage() {
+  const params = useParams()
   const router = useRouter()
-  // const { user } = useAuth() // Commented out unused variable
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
   // Invoice form data
   const [selectedClient, setSelectedClient] = useState("")
-  const [dateOfIssue, setDateOfIssue] = useState(new Date().toISOString().split('T')[0])
+  const [dateOfIssue, setDateOfIssue] = useState("")
   const [dueDate, setDueDate] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
   const [paymentReference, setPaymentReference] = useState("")
@@ -38,15 +57,7 @@ export default function CreateInvoicePage() {
   const [notes, setNotes] = useState("")
   
   // Line items
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    {
-      id: Date.now().toString(),
-      description: "",
-      rate: 0,
-      quantity: 1,
-      line_total: 0
-    }
-  ])
+  const [lineItems, setLineItems] = useState<LineItem[]>([])
   
   // Calculations
   const subtotal = lineItems.reduce((sum, item) => sum + item.line_total, 0)
@@ -59,13 +70,35 @@ export default function CreateInvoicePage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [clientsResponse] = await Promise.all([
-        fetch('/api/clients')
+      const [clientsResponse, invoiceResponse] = await Promise.all([
+        fetch('/api/clients'),
+        fetch(`/api/invoices/${params.id}`)
       ])
       
       if (clientsResponse.ok) {
         const clientsData = await clientsResponse.json()
         setClients(clientsData)
+      }
+
+      if (invoiceResponse.ok) {
+        const invoiceData = await invoiceResponse.json()
+        setSelectedClient(invoiceData.client_id)
+        setDateOfIssue(invoiceData.date_of_issue)
+        setDueDate(invoiceData.due_date || "")
+        setPaymentMethod(invoiceData.payment_method || "")
+        setPaymentReference(invoiceData.payment_reference || "")
+        setCurrency(invoiceData.currency || "USD")
+        setNotes(invoiceData.notes || "")
+        
+        // Convert line items to include id for editing
+        const itemsWithIds = invoiceData.line_items.map((item: any, index: number) => ({
+          id: `item-${index}`,
+          description: item.description,
+          rate: item.rate,
+          quantity: item.quantity,
+          line_total: item.line_total
+        }))
+        setLineItems(itemsWithIds)
       }
 
     } catch (err) {
@@ -110,8 +143,6 @@ export default function CreateInvoicePage() {
     setLineItems(lineItems.filter(item => item.id !== id))
   }
 
-  // No service catalog; description remains free text
-
   const handleSubmit = async (status: 'draft' | 'sent') => {
     if (!selectedClient) {
       alert('Please select a client')
@@ -135,8 +166,8 @@ export default function CreateInvoicePage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch('/api/invoices', {
-        method: 'POST',
+      const response = await fetch(`/api/invoices/${params.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -158,20 +189,19 @@ export default function CreateInvoicePage() {
         }),
       })
       
-             if (!response.ok) {
-         const errorData = await response.json()
-         throw new Error(errorData.details || errorData.error || 'Failed to create invoice')
-       }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || errorData.error || 'Failed to update invoice')
+      }
       
-      const invoice = await response.json()
-      router.push(`/invoices/${invoice.id}`)
-         } catch (err) {
-       console.error('Error creating invoice:', err)
-       const errorMessage = err instanceof Error ? err.message : 'Failed to create invoice'
-       alert(`Error: ${errorMessage}`)
-     } finally {
-       setSubmitting(false)
-     }
+      router.push(`/invoices/${params.id}`)
+    } catch (err) {
+      console.error('Error updating invoice:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update invoice'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (loading) {
@@ -187,31 +217,21 @@ export default function CreateInvoicePage() {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h1 className="text-xl font-semibold text-gray-900">Invoice</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/invoices/${params.id}`}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft size={16} />
+              Back to invoice
+            </Link>
+            <h1 className="text-xl font-semibold text-gray-900">Edit Invoice</h1>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-auto">
           <div className="max-w-4xl mx-auto px-6 py-6">
-            {/* Information Banner */}
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    Please set up your billing information before creating invoices.{' '}
-                    <a href="/settings" className="font-medium underline hover:text-blue-600">
-                      Go to settings
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Invoice Details */}
             <div className="grid grid-cols-5 gap-6 mb-8">
               {/* Billed to */}
@@ -324,7 +344,6 @@ export default function CreateInvoicePage() {
                 {lineItems.map((item) => (
                   <div key={item.id} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200">
                     <div className="col-span-6">
-                      {/* Free-text service description only */}
                       <input
                         type="text"
                         value={item.description}
@@ -479,13 +498,13 @@ export default function CreateInvoicePage() {
                 >
                   {submitting ? 'Saving...' : 'Save as draft'}
                 </button>
-                                 <button
-                   onClick={() => handleSubmit('sent')}
-                   disabled={submitting}
-                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
-                 >
-                   {submitting ? 'Sending...' : 'Send invoice'}
-                 </button>
+                <button
+                  onClick={() => handleSubmit('sent')}
+                  disabled={submitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {submitting ? 'Sending...' : 'Send invoice'}
+                </button>
               </div>
             </div>
           </div>
@@ -494,4 +513,3 @@ export default function CreateInvoicePage() {
     </RouteGuard>
   )
 }
-

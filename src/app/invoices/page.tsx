@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Filter, LayoutGrid, ChevronDown, Plus, X, Search, MoreHorizontal, Eye, Download, CheckCircle, Mail, Link as LinkIcon, Trash2 } from "lucide-react"
+import { Filter, LayoutGrid, ChevronDown, Plus, X, Search, MoreHorizontal, Eye, Download, CheckCircle, Mail, Link as LinkIcon, Trash2, Edit } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import RouteGuard from "@/components/RouteGuard"
@@ -9,9 +9,7 @@ import { ClientUser } from "@/lib/types/auth"
 interface Client {
   id: string
   name: string
-  client_company?: {
-    name: string
-  }
+  client_company_name?: string
 }
 
 interface Invoice {
@@ -94,7 +92,7 @@ export default function InvoicesPage() {
       filtered = filtered.filter(invoice => 
         invoice.invoice_number.toLowerCase().includes(searchTerm) ||
         invoice.client?.name.toLowerCase().includes(searchTerm) ||
-        invoice.client?.client_company?.name.toLowerCase().includes(searchTerm) ||
+        invoice.client?.client_company_name?.toLowerCase().includes(searchTerm) ||
         invoice.payment_method?.toLowerCase().includes(searchTerm)
       )
     }
@@ -203,7 +201,7 @@ export default function InvoicesPage() {
   const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency
+      currency: currency || 'USD'
     }).format(amount)
   }
 
@@ -521,7 +519,7 @@ export default function InvoicesPage() {
                   </div>
                   <div className="w-182">
                     <div className="text-gray-900">
-                      {invoice.client?.client_company?.name || invoice.client?.name || 'N/A'}
+                      {invoice.client?.client_company_name || invoice.client?.name || 'N/A'}
                     </div>
                   </div>
                   <div className="w-60">
@@ -562,6 +560,16 @@ export default function InvoicesPage() {
                         <Eye size={16} />
                         View
                       </Link>
+                      {user?.role !== 'client' && (
+                        <Link
+                          href={`/invoices/${invoice.id}/edit`}
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setOpenMenuId(null)}
+                        >
+                          <Edit size={16} />
+                          Edit
+                        </Link>
+                      )}
                       <button
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => {
@@ -632,7 +640,7 @@ export default function InvoicesPage() {
                    <div className="flex-1">
                                            <div className="font-medium text-gray-900 text-xs">{invoice.invoice_number}</div>
                       <div className="text-gray-500 text-xs">
-                       {invoice.client?.client_company?.name || invoice.client?.name || 'N/A'}
+                       {invoice.client?.client_company_name || invoice.client?.name || 'N/A'}
                      </div>
                    </div>
                    <div className="flex items-center gap-2">
@@ -674,6 +682,16 @@ export default function InvoicesPage() {
                          <Eye size={16} />
                          View
                        </Link>
+                       {user?.role !== 'client' && (
+                         <Link
+                           href={`/invoices/${invoice.id}/edit`}
+                           className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                           onClick={() => setOpenMenuId(null)}
+                         >
+                           <Edit size={16} />
+                           Edit
+                         </Link>
+                       )}
                        <button
                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                          onClick={() => {
