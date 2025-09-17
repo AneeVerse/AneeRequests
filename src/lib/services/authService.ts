@@ -208,6 +208,31 @@ export class AuthService {
     return { message: 'Password changed successfully' }
   }
 
+  // Admin change password (no current password required)
+  static async adminChangePassword(userId: string, newPassword: string) {
+    await connectDB()
+    
+    const user = await User.findById(userId)
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    // Verify user is admin
+    if (user.role !== 'admin') {
+      throw new Error('Only admin users can use this method')
+    }
+
+    // Hash new password
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds)
+
+    // Update password
+    user.password = hashedPassword
+    await user.save()
+
+    return { message: 'Password changed successfully' }
+  }
+
   // Admin utility: generate and email a temporary password
   static async adminSendTemporaryPassword(email: string) {
     await connectDB()

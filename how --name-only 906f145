@@ -1,0 +1,3 @@
+[33m906f145[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Enhance invoice management with edit functionality and improved data handling
+[33mb17b32f[m Add currency support to invoices and enhance formatting
+[33m9288db2[m Refactor CreateInvoicePage to remove service catalog functionality

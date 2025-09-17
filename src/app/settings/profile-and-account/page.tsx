@@ -14,11 +14,12 @@ interface Profile {
 }
 
 export default function ProfileAndAccountPage() {
-  const { user } = useAuth()
+  const { user, updateProfile } = useAuth()
   const [profile, setProfile] = useState<Profile>({ name: "", email: "" })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState("")
 
   const load = useCallback(async () => {
     try {
@@ -45,14 +46,44 @@ export default function ProfileAndAccountPage() {
   const save = async () => {
     setSaving(true)
     setSaved(false)
+    setError("")
+    
+    // Basic validation
+    if (!profile.name.trim()) {
+      setError("Name is required")
+      setSaving(false)
+      return
+    }
+    
+    if (!profile.email.trim()) {
+      setError("Email is required")
+      setSaving(false)
+      return
+    }
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(profile.email.trim())) {
+      setError("Please enter a valid email address")
+      setSaving(false)
+      return
+    }
+    
     try {
       const res = await fetch('/api/settings/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile)
       })
-      if (!res.ok) throw new Error('Failed to save')
+      
       const data = await res.json()
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save profile')
+      }
+
+      // Update AuthContext with new profile data
+      updateProfile(data.user?.name || profile.name, data.user?.email || profile.email)
 
       // Persist to auth storage so the whole app reflects the new email/name
       const stored = localStorage.getItem('auth_user')
@@ -64,9 +95,13 @@ export default function ProfileAndAccountPage() {
 
       await load()
       setSaved(true)
-      setTimeout(() => setSaved(false), 1500)
-    } catch {}
-    finally { setSaving(false) }
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      console.error('Save profile error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to save profile')
+    } finally { 
+      setSaving(false) 
+    }
   }
 
   if (loading) {
@@ -102,6 +137,20 @@ export default function ProfileAndAccountPage() {
               </div>
 
               <div className="p-6 space-y-6">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {saved && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                    <p className="text-sm text-green-600">Profile updated successfully!</p>
+                  </div>
+                )}
+
                 {/* Avatar */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Profile picture</label>

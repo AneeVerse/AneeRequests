@@ -7,7 +7,7 @@ import Link from "next/link"
 
 export default function ChangePasswordPage() {
 
-  const { changePassword, requestPasswordReset, adminSendTemporaryPassword, user } = useAuth()
+  const { changePassword, adminChangePassword, requestPasswordReset, adminSendTemporaryPassword, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -35,15 +35,32 @@ export default function ChangePasswordPage() {
     setError("")
     setSuccess("")
     
-    if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-      setError("Please fill in all fields")
-      return
+    // For admin users, only check new password fields
+    if (user?.role === 'admin') {
+      if (!formData.newPassword || !formData.confirmPassword) {
+        setError("Please fill in new password fields")
+        return
+      }
+    } else {
+      // For non-admin users, check all fields
+      if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
+        setError("Please fill in all fields")
+        return
+      }
     }
     
     setLoading(true)
     
     try {
-      const result = await changePassword(formData)
+      let result
+      
+      if (user?.role === 'admin') {
+        // Use admin change password (no current password required)
+        result = await adminChangePassword(formData.newPassword, formData.confirmPassword)
+      } else {
+        // Use regular change password
+        result = await changePassword(formData)
+      }
       
       if (result.success) {
         setSuccess(result.message)
@@ -134,43 +151,48 @@ export default function ChangePasswordPage() {
             <div className="mb-6">
               <h2 className="text-lg font-medium text-gray-900 mb-2">Update Password</h2>
               <p className="text-sm text-gray-600">
-                Enter your current password and choose a new password to update your account security.
+                {user?.role === 'admin' 
+                  ? "Choose a new password to update your account security."
+                  : "Enter your current password and choose a new password to update your account security."
+                }
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Current Password */}
-              <div>
-                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  Current Password <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="currentPassword"
-                    type={showPasswords.current ? "text" : "password"}
-                    value={formData.currentPassword}
-                    onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('current')}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      {showPasswords.current ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
+              {/* Current Password - Only show for non-admin users */}
+              {user?.role !== 'admin' && (
+                <div>
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="currentPassword"
+                      type={showPasswords.current ? "text" : "password"}
+                      value={formData.currentPassword}
+                      onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                      className="w-full pl-10 pr-10 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('current')}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        {showPasswords.current ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* New Password */}
               <div>

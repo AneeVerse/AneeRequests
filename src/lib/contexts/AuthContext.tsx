@@ -9,6 +9,8 @@ interface AuthContextType extends AuthState {
   impersonateTeamMember: (memberId: string, memberName: string, memberEmail: string, memberRole?: 'admin' | 'member' | 'viewer') => void
   stopImpersonation: () => void
   changePassword: (data: ChangePasswordData) => Promise<{ success: boolean; message: string }>
+  adminChangePassword: (newPassword: string, confirmPassword: string) => Promise<{ success: boolean; message: string }>
+  updateProfile: (name: string, email: string) => void
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; message: string }>
   requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>
   checkEmail: (email: string) => Promise<{ success: boolean; exists: boolean; message: string; user?: { id: string; email: string; name: string; role: string } }>
@@ -27,6 +29,7 @@ type AuthAction =
   | { type: 'IMPERSONATE_USER'; payload: { user: User; originalUser: AdminUser } }
   | { type: 'STOP_IMPERSONATION' }
   | { type: 'CHANGE_PASSWORD'; payload: string }
+  | { type: 'UPDATE_PROFILE'; payload: { name: string; email: string } }
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
@@ -43,6 +46,12 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     case 'STOP_IMPERSONATION':
       return { ...state, user: state.originalUser || null, impersonating: false, originalUser: undefined }
     case 'CHANGE_PASSWORD':
+      return state
+    case 'UPDATE_PROFILE':
+      if (state.user) {
+        const updatedUser = { ...state.user, name: action.payload.name, email: action.payload.email }
+        return { ...state, user: updatedUser }
+      }
       return state
     default:
       return state
@@ -244,6 +253,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const adminChangePassword = async (newPassword: string, confirmPassword: string): Promise<{ success: boolean; message: string }> => {
+    if (newPassword !== confirmPassword) {
+      return { success: false, message: 'New passwords do not match' }
+    }
+    
+    if (newPassword.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters' }
+    }
+    
+    try {
+      const response = await fetch('/api/auth/admin-change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: state.user?.id,
+          newPassword: newPassword
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Password change failed')
+      }
+
+      dispatch({ type: 'CHANGE_PASSWORD', payload: newPassword })
+      return { success: true, message: 'Password updated successfully' }
+      
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : 'Password change failed' }
+    }
+  }
+
+  const updateProfile = (name: string, email: string) => {
+    dispatch({ type: 'UPDATE_PROFILE', payload: { name, email } })
+  }
+
   const register = async (email: string, password: string, name: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await fetch('/api/auth/register', {
@@ -396,12 +444,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     impersonateTeamMember,
     stopImpersonation,
     changePassword,
+    adminChangePassword,
+    updateProfile,
     register,
     requestPasswordReset,
     checkEmail,
     resetPasswordDirect,
-    adminResetPassword
-    ,adminSendTemporaryPassword
+    adminResetPassword,
+    adminSendTemporaryPassword
   }
 
   return (
