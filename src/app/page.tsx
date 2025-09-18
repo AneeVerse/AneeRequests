@@ -1,8 +1,10 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Filter, List, Plus, Bell, ChevronDown, X, Search, Calendar } from "lucide-react"
+import { Filter, List, Plus, Bell, ChevronDown, X, Search, Calendar, Users, FileText, DollarSign, Star, Settings, Eye, Edit, MessageCircle } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
+import { hasPermission, getRoleDisplayName, getRoleDescription } from "@/lib/permissions"
+import PermissionGate from "@/components/PermissionGate"
 import Link from "next/link"
 
 interface DashboardStats {
@@ -387,49 +389,109 @@ export default function DashboardPage() {
 
       {/* Page Title Section */}
       <div className="px-4 sm:px-6 py-4 bg-white border-b border-gray-200">
-        <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
-          Welcome, {user?.name || 'User'}
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Welcome, {user?.name || 'User'}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-md">
+                {getRoleDisplayName(user?.role || '')}
+              </span>
+              <span className="text-sm text-gray-500">
+                {getRoleDescription(user?.role || '')}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <PermissionGate permission="create_requests">
+              <Link
+                href="/requests/new"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Plus size={16} />
+                New Request
+              </Link>
+            </PermissionGate>
+          </div>
+        </div>
       </div>
 
       {/* Metrics Grid */}
       <div className="px-4 sm:px-6 py-4 bg-white border-b border-gray-200">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-4">
+          {/* Revenue - Only for Admin and Portal Admin */}
+          <PermissionGate permission="view_reports">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <DollarSign size={16} className="text-gray-400" />
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REVENUE</div>
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {loading ? "Loading..." : `$${stats.revenue.toFixed(2)}`}
+              </div>
+              <div className="text-xs text-gray-400">—</div>
+              <div className="w-full h-1 bg-gray-100 rounded">
+                <div className="h-1 bg-primary-600 rounded" style={{ width: '0%' }}></div>
+              </div>
+            </div>
+          </PermissionGate>
+
+          {/* Clients - Only for Admin and Portal Admin */}
+          <PermissionGate permission="view_clients">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-gray-400" />
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">CLIENTS</div>
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {loading ? "Loading..." : stats.clients}
+              </div>
+              <div className="text-xs text-gray-400">—</div>
+            </div>
+          </PermissionGate>
+
+          {/* Requests - All roles can see this */}
           <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REVENUE</div>
-            <div className="text-2xl font-semibold text-gray-900">
-              {loading ? "Loading..." : `$${stats.revenue.toFixed(2)}`}
-            </div>
-            <div className="text-xs text-gray-400">—</div>
-            <div className="w-full h-1 bg-gray-100 rounded">
-              <div className="h-1 bg-primary-600 rounded" style={{ width: '0%' }}></div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {user?.role === 'admin' ? 'CLIENTS' : 'PROJECTS'}
-            </div>
-            <div className="text-2xl font-semibold text-gray-900">
-              {loading ? "Loading..." : stats.clients}
-            </div>
-            <div className="text-xs text-gray-400">—</div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {user?.role === 'admin' ? 'REQUESTS' : 'MY REQUESTS'}
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-gray-400" />
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {user?.role === 'admin' || user?.role === 'portal_admin' ? 'REQUESTS' : 'MY REQUESTS'}
+              </div>
             </div>
             <div className="text-2xl font-semibold text-gray-900">
               {loading ? "Loading..." : stats.requests}
             </div>
             <div className="text-xs text-gray-400">—</div>
           </div>
-          <div className="space-y-2">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REVIEWS</div>
-            <div className="text-2xl font-semibold text-gray-900">
-              {loading ? "Loading..." : stats.reviews}
+
+          {/* Reviews - Only for Admin and Portal Admin */}
+          <PermissionGate permission="view_reports">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Star size={16} className="text-gray-400" />
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">REVIEWS</div>
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {loading ? "Loading..." : stats.reviews}
+              </div>
+              <div className="text-xs text-gray-400">—</div>
             </div>
-            <div className="text-xs text-gray-400">—</div>
-          </div>
+          </PermissionGate>
+
+          {/* Team Members - Only for Admin and Portal Admin */}
+          <PermissionGate permission="view_team">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-gray-400" />
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">TEAM</div>
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {loading ? "Loading..." : stats.team}
+              </div>
+              <div className="text-xs text-gray-400">—</div>
+            </div>
+          </PermissionGate>
         </div>
 
         {/* Chart Area */}
@@ -577,14 +639,14 @@ export default function DashboardPage() {
           >
             All
           </button>
-          {effectiveRole === 'admin' && (
+          <PermissionGate permission="assign_requests">
             <button 
               onClick={() => setActiveTab('unassigned')}
               className={`px-4 py-2 text-xs font-medium ${activeTab === 'unassigned' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50'} whitespace-nowrap shadow-sm transition-colors`}
             >
               Unassigned
             </button>
-          )}
+          </PermissionGate>
           <button 
             onClick={() => setActiveTab('completed')}
             className={`px-4 py-2 text-xs font-medium ${activeTab === 'completed' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50'} whitespace-nowrap shadow-sm transition-colors`}
@@ -603,13 +665,13 @@ export default function DashboardPage() {
               <input type="checkbox" className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
             </div>
             <div className="col-span-3">TITLE</div>
-            {effectiveRole === 'admin' && (
+            <PermissionGate permission="view_clients">
               <div className="col-span-2">CLIENT</div>
-            )}
+            </PermissionGate>
             <div className="col-span-1">STATUS</div>
-            {effectiveRole === 'admin' && (
+            <PermissionGate permission="assign_requests">
               <div className="col-span-1">ASSIGNED</div>
-            )}
+            </PermissionGate>
             <div className="col-span-1 flex items-center gap-1">
               PRIORITY
               <ChevronDown size={12} className="text-gray-400" />
@@ -719,18 +781,18 @@ export default function DashboardPage() {
                     {getDescriptionPreview(request.description) || 'No description'}
                   </div>
                 </div>
-                {effectiveRole === 'admin' && (
+                <PermissionGate permission="view_clients">
                   <div className="col-span-2">
                     <div className="font-medium text-gray-900">{request.client?.name || 'Unknown Client'}</div>
                     <div className="text-gray-500">{/* organization if available */}</div>
                   </div>
-                )}
+                </PermissionGate>
                 <div className="col-span-1">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
                     {request.status ? request.status.replace(/_/g, ' ') : 'Unknown'}
                   </span>
                 </div>
-                {effectiveRole === 'admin' && (
+                <PermissionGate permission="assign_requests">
                   <div className="col-span-1">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
@@ -739,7 +801,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </div>
-                )}
+                </PermissionGate>
                 <div className="col-span-1">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
@@ -784,13 +846,13 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-xs">
-              {effectiveRole === 'admin' && (
+              <PermissionGate permission="view_clients">
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
                   <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
                   <div className="text-gray-500 text-xs"></div>
                 </div>
-              )}
+              </PermissionGate>
               
               <div>
                 <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
@@ -801,7 +863,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {effectiveRole === 'admin' && (
+              <PermissionGate permission="assign_requests">
                 <div>
                   <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
                   <div className="flex items-center gap-2">
@@ -809,7 +871,7 @@ export default function DashboardPage() {
                     <span className="text-gray-600 text-xs">{getMemberName(request.assigned_to) || 'None'}</span>
                   </div>
                 </div>
-              )}
+              </PermissionGate>
 
               <div>
                 <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>

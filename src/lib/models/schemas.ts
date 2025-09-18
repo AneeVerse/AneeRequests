@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'client', 'member', 'viewer'], default: 'client' },
+  role: { type: String, enum: ['admin', 'portal_admin', 'client', 'member', 'viewer'], default: 'client' },
   client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
   team_member_id: { type: mongoose.Schema.Types.ObjectId, ref: 'TeamMember' },
   is_verified: { type: Boolean, default: false },
@@ -53,7 +53,7 @@ const requestSchema = new mongoose.Schema({
 const teamMemberSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  role: { type: String, enum: ['admin', 'member', 'viewer'], default: 'member' },
+  role: { type: String, enum: ['admin', 'portal_admin', 'member', 'viewer'], default: 'member' },
   status: { type: String, enum: ['active', 'inactive', 'pending'], default: 'active' },
   can_view_client_portal: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now }

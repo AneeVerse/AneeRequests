@@ -59,30 +59,41 @@ export async function POST(request: NextRequest) {
 
     await newTeamMember.save()
 
-    // If password provided, create/update user account linked to this team member
-    if (password) {
-      if (password.length < 6) {
-        return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 })
-      }
-      const hashed = await bcrypt.hash(password, 12)
+    // Always create/update user account linked to this team member
+    try {
       const existingUser = await User.findOne({ email: normalizedEmail })
       if (existingUser) {
-        existingUser.password = hashed
-        existingUser.role = role === 'admin' ? 'admin' : (role || 'member')
+        // Update existing user
+        existingUser.name = name
+        existingUser.role = role === 'admin' ? 'admin' : role === 'portal_admin' ? 'portal_admin' : (role || 'member')
         existingUser.team_member_id = newTeamMember._id
         existingUser.is_verified = true
+        
+        // Update password if provided
+        if (password) {
+          if (password.length < 6) {
+            return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 })
+          }
+          const hashed = await bcrypt.hash(password, 12)
+          existingUser.password = hashed
+        }
+        
         await existingUser.save()
       } else {
+        // Create new user
+        const hashed = password ? await bcrypt.hash(password, 12) : await bcrypt.hash('temp123', 12)
         const user = new User({
           email: normalizedEmail,
           password: hashed,
           name,
-          role: role === 'admin' ? 'admin' : (role || 'member'),
+          role: role === 'admin' ? 'admin' : role === 'portal_admin' ? 'portal_admin' : (role || 'member'),
           team_member_id: newTeamMember._id,
           is_verified: true
         })
         await user.save()
       }
+    } catch (e) {
+      console.error('Failed to create/update auth user for team member', e)
     }
 
     return NextResponse.json({

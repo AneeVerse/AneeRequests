@@ -179,7 +179,7 @@ export default function TeamMemberDetailPage() {
   }
 
   return (
-    <RouteGuard requireAdmin>
+    <RouteGuard requireAnyPermission={['view_team', 'edit_team']}>
       <div className="flex flex-col h-full bg-gray-50">
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">

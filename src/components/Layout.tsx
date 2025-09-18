@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/contexts/AuthContext"
+import { hasPermission, getRoleDisplayName } from "@/lib/permissions"
 import { 
   LayoutDashboard, 
   FileText, 
@@ -15,28 +16,23 @@ import {
   User,
   Shield,
   Menu,
-  X
+  X,
+  BarChart3
 } from "lucide-react"
 
-const getSidebarItems = (userRole: string) => {
-  const adminItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Requests", href: "/requests", icon: FileText },
-    { name: "Clients", href: "/clients", icon: Users },
-    { name: "Team", href: "/team", icon: UserCheck },
-    { name: "Invoices", href: "/invoices", icon: Receipt },
-    { name: "Reports", href: "/reports", icon: LayoutDashboard },
-    { name: "Settings", href: "/settings/profile-and-account", icon: Settings },
+const getSidebarItems = (user: any) => {
+  const allItems = [
+    { name: "Dashboard", href: "/", icon: LayoutDashboard, permission: "view_dashboard" },
+    { name: "Requests", href: "/requests", icon: FileText, permission: "view_requests" },
+    { name: "Clients", href: "/clients", icon: Users, permission: "view_clients" },
+    { name: "Team", href: "/team", icon: UserCheck, permission: "view_team" },
+    { name: "Invoices", href: "/invoices", icon: Receipt, permission: "view_invoices" },
+    { name: "Reports", href: "/reports", icon: BarChart3, permission: "view_reports" },
+    { name: "Settings", href: "/settings/profile-and-account", icon: Settings, permission: "admin_settings" },
   ]
 
-  const clientItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "My Requests", href: "/requests", icon: FileText },
-    { name: "Invoices", href: "/invoices", icon: Receipt },
-    { name: "Settings", href: "/settings/profile-and-account", icon: Settings },
-  ]
-
-  return userRole === 'admin' ? adminItems : clientItems
+  // Filter items based on user permissions
+  return allItems.filter(item => hasPermission(user, item.permission as any))
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -125,7 +121,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <ul className="space-y-1">
-            {getSidebarItems(user?.role || 'client').map((item: { name: string; href: string; icon: React.ComponentType<{ size: number }> }) => {
+            {getSidebarItems(user).map((item: { name: string; href: string; icon: React.ComponentType<{ size: number }> }) => {
               const isActive = pathname === item.href || 
                 (item.href !== "/" && pathname?.startsWith(item.href))
               
@@ -178,18 +174,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <div className="px-3 py-2 border-b border-gray-100">
                   <div className="text-sm font-medium text-gray-900">{user?.name}</div>
                   <div className="text-xs text-gray-500">{user?.email}</div>
-                  {user?.role === 'admin' && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Shield size={12} className="text-primary-600" />
-                      <span className="text-xs text-primary-600 font-medium">Admin</span>
-                    </div>
-                  )}
-                  {user?.role === 'client' && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <User size={12} className="text-blue-600" />
-                      <span className="text-xs text-blue-600 font-medium">Client</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 mt-1">
+                    {user?.role === 'admin' || user?.role === 'portal_admin' ? (
+                      <>
+                        <Shield size={12} className="text-primary-600" />
+                        <span className="text-xs text-primary-600 font-medium">{getRoleDisplayName(user?.role || '')}</span>
+                      </>
+                    ) : user?.role === 'client' ? (
+                      <>
+                        <User size={12} className="text-blue-600" />
+                        <span className="text-xs text-blue-600 font-medium">{getRoleDisplayName(user?.role || '')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck size={12} className="text-green-600" />
+                        <span className="text-xs text-green-600 font-medium">{getRoleDisplayName(user?.role || '')}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 
                 {impersonating && (

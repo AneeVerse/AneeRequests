@@ -121,7 +121,7 @@ export default function EditTeamMemberPage() {
   }
 
   return (
-    <RouteGuard requireAdmin>
+    <RouteGuard requireAnyPermission={['edit_team', 'admin_settings']}>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto py-4 lg:py-6 px-4 sm:px-6 lg:px-8">
           {/* Mobile Header */}

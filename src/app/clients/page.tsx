@@ -313,7 +313,7 @@ export default function ClientsPage() {
   )
   
   return (
-    <RouteGuard requireAdmin>
+    <RouteGuard requireAnyPermission={['view_clients', 'create_clients', 'edit_clients', 'delete_clients']}>
       <div className="flex flex-col h-full bg-gray-50">
       {/* Mobile Header */}
       <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">

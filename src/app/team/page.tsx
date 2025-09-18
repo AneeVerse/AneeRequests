@@ -310,7 +310,7 @@ export default function TeamPage() {
   // Removed duplicate filtering logic - using filterTeamMembers instead
 
   return (
-    <RouteGuard requireAdmin>
+    <RouteGuard requireAnyPermission={['view_team', 'create_team', 'edit_team', 'delete_team']}>
       <div className="flex flex-col h-full bg-gray-50">
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">

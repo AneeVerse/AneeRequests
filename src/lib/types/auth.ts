@@ -19,7 +19,7 @@ export interface TeamUser {
   id: string
   email: string
   name: string
-  role: 'admin' | 'member' | 'viewer'
+  role: 'admin' | 'portal_admin' | 'member' | 'viewer'
 }
 
 export type User = AdminUser | ClientUser | TeamUser

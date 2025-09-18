@@ -8,7 +8,7 @@ type TeamMemberLean = {
   _id: mongoose.Types.ObjectId
   name: string
   email: string
-  role: 'admin' | 'member' | 'viewer'
+  role: 'admin' | 'portal_admin' | 'member' | 'viewer'
   status: 'active' | 'inactive' | 'pending'
   can_view_client_portal?: boolean
   created_at?: Date
@@ -59,30 +59,39 @@ export async function PUT(
       return NextResponse.json({ error: 'Team member not found' }, { status: 404 })
     }
 
-    // If password provided, create/update corresponding auth user
-    if (password && email) {
+    // Always update corresponding auth user when role, name, or email changes
+    if (email) {
       try {
         let authUser = await User.findOne({ email })
-        const hashed = await bcrypt.hash(password, 12)
         if (authUser) {
-          authUser.password = hashed
-          authUser.role = role
+          // Update existing user
+          authUser.name = name
+          authUser.role = role === 'admin' ? 'admin' : role === 'portal_admin' ? 'portal_admin' : role
           authUser.team_member_id = memberId as unknown as mongoose.Types.ObjectId
           authUser.is_verified = true
+          
+          // Update password if provided
+          if (password) {
+            const hashed = await bcrypt.hash(password, 12)
+            authUser.password = hashed
+          }
+          
           await authUser.save()
         } else {
+          // Create new user if doesn't exist
+          const hashed = password ? await bcrypt.hash(password, 12) : await bcrypt.hash('temp123', 12)
           authUser = new User({
             email,
             password: hashed,
             name,
-            role,
+            role: role === 'admin' ? 'admin' : role === 'portal_admin' ? 'portal_admin' : role,
             team_member_id: memberId,
             is_verified: true
           })
           await authUser.save()
         }
       } catch (e) {
-        console.error('Failed to update auth user password for team member', e)
+        console.error('Failed to update auth user for team member', e)
       }
     }
 
