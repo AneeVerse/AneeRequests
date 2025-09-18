@@ -180,9 +180,22 @@ export default function TeamMemberDetailPage() {
 
   return (
     <RouteGuard requireAdmin>
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <div className="flex flex-col h-full bg-gray-50">
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/team"
+              className="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100"
+            >
+              <ArrowLeft size={20} />
+            </Link>
+            <h1 className="text-lg font-semibold text-gray-900">Team Member</h1>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <Link 
               href="/team"
@@ -196,27 +209,27 @@ export default function TeamMemberDetailPage() {
         </div>
 
         {/* Team Member Profile */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className="w-12 h-12 lg:w-12 lg:h-12 bg-gray-200 rounded-full flex items-center justify-center">
                 <User size={24} className="text-gray-500" />
               </div>
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">{member.name}</h2>
-                <p className="text-sm text-gray-600">{member.email}</p>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-medium text-gray-900 truncate">{member.name}</h2>
+                <p className="text-sm text-gray-600 truncate">{member.email}</p>
               </div>
             </div>
             <div className="relative">
               <button
                 onClick={() => setShowActionMenu(!showActionMenu)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded"
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <MoreHorizontal size={20} />
               </button>
               
               {showActionMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10" ref={actionMenuRef}>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10" ref={actionMenuRef}>
                   <div className="py-1">
                     <button
                       onClick={handleImpersonate}
@@ -238,51 +251,51 @@ export default function TeamMemberDetailPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 px-6">
-          <div className="flex gap-8">
-            <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
+        <div className="border-b border-gray-200 px-4 lg:px-6 bg-white">
+          <div className="flex gap-4 lg:gap-8 overflow-x-auto">
+            <button className="pb-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">
               Overview
             </button>
-            <Link href={`/team/${memberId}/edit`} className="pb-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">
+            <Link href={`/team/${memberId}/edit`} className="pb-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 whitespace-nowrap">
               Settings
             </Link>
           </div>
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <div className="space-y-6">
             {/* Overview Section */}
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">Overview</h2>
               
               {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="text-2xl font-bold text-gray-900">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                  <div className="text-xl lg:text-2xl font-bold text-gray-900">
                     {serviceRequests.filter(r => r.status === 'completed').length}
                   </div>
-                  <div className="text-sm text-gray-600">Completed service requests</div>
+                  <div className="text-xs lg:text-sm text-gray-600">Completed</div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="text-2xl font-bold text-gray-900">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                  <div className="text-xl lg:text-2xl font-bold text-gray-900">
                     {serviceRequests.filter(r => {
                       const lastMonth = new Date()
                       lastMonth.setMonth(lastMonth.getMonth() - 1)
                       return new Date(r.created_at) >= lastMonth
                     }).length}
                   </div>
-                  <div className="text-sm text-gray-600">Services requests last month</div>
+                  <div className="text-xs lg:text-sm text-gray-600">Last month</div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="text-2xl font-bold text-gray-900">-</div>
-                  <div className="text-sm text-gray-600">Avg. rating</div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                  <div className="text-xl lg:text-2xl font-bold text-gray-900">-</div>
+                  <div className="text-xs lg:text-sm text-gray-600">Avg. rating</div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="text-2xl font-bold text-gray-900">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                  <div className="text-xl lg:text-2xl font-bold text-gray-900">
                     {serviceRequests.filter(r => r.status === 'in_progress' || r.status === 'submitted').length}
                   </div>
-                  <div className="text-sm text-gray-600">Active service requests</div>
+                  <div className="text-xs lg:text-sm text-gray-600">Active</div>
                 </div>
               </div>
             </div>
@@ -293,44 +306,44 @@ export default function TeamMemberDetailPage() {
               <h2 className="text-lg font-medium text-gray-900 mb-4">Service requests</h2>
               
               {/* Search and Filters Bar */}
-              <div className="px-0 sm:px-0 mb-4">
+              <div className="mb-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="relative w-full sm:w-80">
                     <input
                       type="text"
-                      placeholder="Search"
+                      placeholder="Search requests..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="w-full pl-9 pr-8 py-2 text-xs text-gray-900 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm"
+                      className="w-full pl-10 pr-10 py-3 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm"
                     />
-                    <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     {search && (
-                      <button onClick={() => setSearch('')} className="absolute right-2 top-2 w-4 h-4 text-gray-400 hover:text-gray-600">×</button>
+                      <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-gray-600">×</button>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Tabs */}
-              <div className="bg-white mb-3">
-                <div className="flex gap-2 min-w-max">
+              <div className="bg-white mb-3 rounded-lg border border-gray-200 p-1">
+                <div className="flex gap-1 min-w-max">
                   <button 
                     onClick={() => setActiveTab('open')}
-                    className={`px-4 py-2 text-xs font-medium ${activeTab === 'open' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50'} whitespace-nowrap shadow-sm transition-colors`}
+                    className={`flex-1 px-4 py-2 text-sm font-medium ${activeTab === 'open' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-transparent hover:bg-gray-50'} whitespace-nowrap transition-colors`}
                   >
                     Open
                   </button>
                   <button 
                     onClick={() => setActiveTab('all')}
-                    className={`px-4 py-2 text-xs font-medium ${activeTab === 'all' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50'} whitespace-nowrap shadow-sm transition-colors`}
+                    className={`flex-1 px-4 py-2 text-sm font-medium ${activeTab === 'all' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-transparent hover:bg-gray-50'} whitespace-nowrap transition-colors`}
                   >
                     All
                   </button>
                   <button 
                     onClick={() => setActiveTab('completed')}
-                    className={`px-4 py-2 text-xs font-medium ${activeTab === 'completed' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50'} whitespace-nowrap shadow-sm transition-colors`}
+                    className={`flex-1 px-4 py-2 text-sm font-medium ${activeTab === 'completed' ? 'text-white bg-primary-600 rounded-md' : 'text-gray-600 bg-transparent hover:bg-gray-50'} whitespace-nowrap transition-colors`}
                   >
                     Completed
                   </button>
@@ -354,48 +367,82 @@ export default function TeamMemberDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  {/* Admin-like grid header */}
-                  <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
-                    <div className="col-span-5">TITLE</div>
-                    <div className="col-span-2">STATUS</div>
-                    <div className="col-span-1">PRIORITY</div>
-                    <div className="col-span-1">UPDATED</div>
-                    <div className="col-span-1">DUE DATE</div>
-                    <div className="col-span-2">CREATED</div>
-                  </div>
-                  <div>
+                <>
+                  {/* Mobile Card Layout */}
+                  <div className="lg:hidden space-y-3">
                     {filteredRequests.map((request) => (
-                      <div key={request.id} className="grid grid-cols-12 gap-4 px-4 py-4 text-xs border-b border-gray-200 hover:bg-gray-50">
-                        <div className="col-span-5">
-                          <Link href={`/requests/${request.id}`} className="font-medium text-gray-900 hover:text-primary-700 line-clamp-1">
+                      <div key={request.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                        <div className="flex items-start justify-between mb-3">
+                          <Link href={`/requests/${request.id}`} className="font-medium text-gray-900 hover:text-primary-700 line-clamp-2 flex-1 pr-2">
                             {request.title}
                           </Link>
-                        </div>
-                        <div className="col-span-2">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
                             {request.status.replace(/_/g, ' ')}
                           </span>
                         </div>
-                        <div className="col-span-1">
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
                             <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>{request.priority}</span>
                           </div>
-                        </div>
-                        <div className="col-span-1 text-gray-500">
-                          {formatDate(request.updated_at || request.created_at)}
-                        </div>
-                        <div className="col-span-1 text-gray-500">
-                          {request.due_date ? formatDate(request.due_date) : 'Due Date'}
-                        </div>
-                        <div className="col-span-2 text-gray-500">
-                          {formatDate(request.created_at)}
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Updated: {formatDate(request.updated_at || request.created_at)}</span>
+                            <span>Created: {formatDate(request.created_at)}</span>
+                          </div>
+                          {request.due_date && (
+                            <div className="text-xs text-gray-500">
+                              Due: {formatDate(request.due_date)}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+
+                  {/* Desktop Table Layout */}
+                  <div className="hidden lg:block bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    {/* Admin-like grid header */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">
+                      <div className="col-span-5">TITLE</div>
+                      <div className="col-span-2">STATUS</div>
+                      <div className="col-span-1">PRIORITY</div>
+                      <div className="col-span-1">UPDATED</div>
+                      <div className="col-span-1">DUE DATE</div>
+                      <div className="col-span-2">CREATED</div>
+                    </div>
+                    <div>
+                      {filteredRequests.map((request) => (
+                        <div key={request.id} className="grid grid-cols-12 gap-4 px-4 py-4 text-xs border-b border-gray-200 hover:bg-gray-50">
+                          <div className="col-span-5">
+                            <Link href={`/requests/${request.id}`} className="font-medium text-gray-900 hover:text-primary-700 line-clamp-1">
+                              {request.title}
+                            </Link>
+                          </div>
+                          <div className="col-span-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                              {request.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <div className="col-span-1">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                              <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>{request.priority}</span>
+                            </div>
+                          </div>
+                          <div className="col-span-1 text-gray-500">
+                            {formatDate(request.updated_at || request.created_at)}
+                          </div>
+                          <div className="col-span-1 text-gray-500">
+                            {request.due_date ? formatDate(request.due_date) : 'Due Date'}
+                          </div>
+                          <div className="col-span-2 text-gray-500">
+                            {formatDate(request.created_at)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>

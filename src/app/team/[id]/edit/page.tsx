@@ -123,9 +123,22 @@ export default function EditTeamMemberPage() {
   return (
     <RouteGuard requireAdmin>
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+        <div className="max-w-4xl mx-auto py-4 lg:py-6 px-4 sm:px-6 lg:px-8">
+          {/* Mobile Header */}
+          <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 mb-4">
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/team/${memberId}`}
+                className="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100"
+              >
+                <ArrowLeft size={20} />
+              </Link>
+              <h1 className="text-lg font-semibold text-gray-900">Edit Team Member</h1>
+            </div>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden lg:flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Link
                 href={`/team/${memberId}`}
@@ -138,10 +151,10 @@ export default function EditTeamMemberPage() {
           </div>
 
           {/* Settings: Team Member Information */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Team Member Information</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                     Name
@@ -151,7 +164,7 @@ export default function EditTeamMemberPage() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -165,7 +178,7 @@ export default function EditTeamMemberPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -178,7 +191,7 @@ export default function EditTeamMemberPage() {
                     id="role"
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="member">Regular team member</option>
                     <option value="admin">Portal Admin</option>
@@ -194,7 +207,7 @@ export default function EditTeamMemberPage() {
                     id="status"
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -208,13 +221,13 @@ export default function EditTeamMemberPage() {
                   <button
                     type="button"
                     onClick={() => setShowPasswordModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                    className="w-full px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
                   >
                     Open Change Password
                   </button>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
                     <input
                       type="checkbox"
@@ -227,17 +240,17 @@ export default function EditTeamMemberPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-6 border-t border-gray-200">
                 <Link
                   href={`/team/${memberId}`}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="w-full sm:w-auto px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-center"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50"
                 >
                   <Save size={16} />
                   {saving ? 'Saving...' : 'Save Changes'}
@@ -247,7 +260,7 @@ export default function EditTeamMemberPage() {
           </div>
 
           {/* Account Security */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 mt-4 lg:mt-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Account Security</h2>
             <div className="space-y-4">
               <div>
@@ -263,15 +276,15 @@ export default function EditTeamMemberPage() {
           </div>
 
           {/* Additional Settings */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 mt-4 lg:mt-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Additional Settings</h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h3>
                   <p className="text-sm text-gray-600">Enable additional security for team member account</p>
                 </div>
-                <button className="px-3 py-1 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100">
+                <button className="w-full sm:w-auto px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100">
                   Enable 2FA
                 </button>
               </div>
@@ -279,7 +292,7 @@ export default function EditTeamMemberPage() {
           </div>
 
           {/* Danger Zone */}
-          <div className="bg-white rounded-lg border border-red-200 p-6 mt-6">
+          <div className="bg-white rounded-lg border border-red-200 p-4 lg:p-6 mt-4 lg:mt-6">
             <h2 className="text-lg font-medium text-red-900 mb-4">Danger Zone</h2>
             <div className="space-y-4">
               <div>
@@ -291,7 +304,7 @@ export default function EditTeamMemberPage() {
                       .then(() => router.push('/team'))
                       .catch(() => alert('Failed to delete team member'))
                   }
-                }} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete Team Member</button>
+                }} className="w-full px-4 py-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">Delete Team Member</button>
               </div>
             </div>
           </div>
@@ -300,8 +313,8 @@ export default function EditTeamMemberPage() {
         {/* Change Password Modal */}
         {showPasswordModal && (
           <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
-              <div className="p-6">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="p-4 lg:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Team Member Password</h3>
                 <div className="space-y-4">
                   <div>
@@ -314,14 +327,14 @@ export default function EditTeamMemberPage() {
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                         placeholder="Enter new password"
                       />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3 mt-6">
-                  <button onClick={() => setShowPasswordModal(false)} className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                  <button onClick={() => setShowPasswordModal(false)} className="w-full sm:flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
                   <button onClick={async () => {
                     if (!newPassword.trim()) return
                     try {
@@ -331,7 +344,7 @@ export default function EditTeamMemberPage() {
                       setNewPassword('')
                       alert('Password changed successfully')
                     } catch { alert('Failed to change password') }
-                  }} disabled={!newPassword.trim()} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50">Change Password</button>
+                  }} disabled={!newPassword.trim()} className="w-full sm:flex-1 px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50">Change Password</button>
                 </div>
               </div>
             </div>
