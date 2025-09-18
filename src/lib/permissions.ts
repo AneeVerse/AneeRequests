@@ -128,7 +128,7 @@ export function hasAllPermissions(user: User | null, permissions: Permission[]):
 export function canAccessRoute(user: User | null, route: string): boolean {
   if (!user) return false
   
-  // Define route permissions
+  // Define route permissions with pattern matching
   const routePermissions: { [key: string]: Permission[] } = {
     '/': ['view_dashboard'],
     '/requests': ['view_requests'],
@@ -143,7 +143,29 @@ export function canAccessRoute(user: User | null, route: string): boolean {
     '/settings': ['admin_settings']
   }
   
-  const requiredPermissions = routePermissions[route] || []
+  // Check for exact match first
+  let requiredPermissions = routePermissions[route]
+  
+  // If no exact match, check for pattern matches
+  if (!requiredPermissions) {
+    if (route.startsWith('/invoices/')) {
+      requiredPermissions = ['view_invoices']
+    } else if (route.startsWith('/requests/')) {
+      requiredPermissions = ['view_requests']
+    } else if (route.startsWith('/clients/')) {
+      requiredPermissions = ['view_clients']
+    } else if (route.startsWith('/team/')) {
+      requiredPermissions = ['view_team']
+    } else if (route.startsWith('/settings/')) {
+      requiredPermissions = ['admin_settings']
+    }
+  }
+  
+  // If still no permissions found, allow access (for routes not in our list)
+  if (!requiredPermissions) {
+    return true
+  }
+  
   return hasAnyPermission(user, requiredPermissions)
 }
 

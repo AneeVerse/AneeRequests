@@ -183,7 +183,7 @@ export default function CreateInvoicePage() {
   }
 
   return (
-    <RouteGuard requireAdmin>
+    <RouteGuard requirePermission="create_invoices">
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">

@@ -4,6 +4,7 @@ import { Filter, LayoutGrid, ChevronDown, Plus, X, Search, MoreHorizontal, Eye, 
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import RouteGuard from "@/components/RouteGuard"
+import PermissionGate from "@/components/PermissionGate"
 import { ClientUser } from "@/lib/types/auth"
 
 interface Client {
@@ -275,7 +276,7 @@ export default function InvoicesPage() {
   }
 
   return (
-    <RouteGuard>
+    <RouteGuard requireAnyPermission={['view_invoices', 'create_invoices', 'edit_invoices', 'delete_invoices']}>
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 gap-3">
@@ -289,7 +290,7 @@ export default function InvoicesPage() {
               </span>
             )}
           </div>
-          {user?.role !== 'client' && (
+          <PermissionGate permission="create_invoices">
             <div className="flex items-center gap-3">
               <Link
                 href="/invoices/new"
@@ -300,7 +301,7 @@ export default function InvoicesPage() {
                 <span className="sm:hidden">Create</span>
               </Link>
             </div>
-          )}
+          </PermissionGate>
         </div>
 
         {/* Search and Controls */}
@@ -481,7 +482,7 @@ export default function InvoicesPage() {
                 <div className="text-gray-500 mb-4">
                   {user?.role === 'client' ? 'No invoices found for your account' : 'No invoices found'}
                 </div>
-                {user?.role !== 'client' && (
+                <PermissionGate permission="create_invoices">
                   <Link
                     href="/invoices/new"
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
@@ -489,7 +490,7 @@ export default function InvoicesPage() {
                     <Plus size={16} />
                     Create your first invoice
                   </Link>
-                )}
+                </PermissionGate>
               </div>
             )}
 
@@ -560,7 +561,7 @@ export default function InvoicesPage() {
                         <Eye size={16} />
                         View
                       </Link>
-                      {user?.role !== 'client' && (
+                      <PermissionGate permission="edit_invoices">
                         <Link
                           href={`/invoices/${invoice.id}/edit`}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -569,7 +570,7 @@ export default function InvoicesPage() {
                           <Edit size={16} />
                           Edit
                         </Link>
-                      )}
+                      </PermissionGate>
                       <button
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => {
@@ -581,18 +582,20 @@ export default function InvoicesPage() {
                         <Download size={16} />
                         Download
                       </button>
-                      {user?.role !== 'client' && invoice.status !== 'paid' && (
-                        <button
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => {
-                            setOpenMenuId(null)
-                            handleMarkAsPaid(invoice.id)
-                          }}
-                        >
-                          <CheckCircle size={16} />
-                          Mark as paid
-                        </button>
-                      )}
+                      <PermissionGate permission="edit_invoices">
+                        {invoice.status !== 'paid' && (
+                          <button
+                            className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => {
+                              setOpenMenuId(null)
+                              handleMarkAsPaid(invoice.id)
+                            }}
+                          >
+                            <CheckCircle size={16} />
+                            Mark as paid
+                          </button>
+                        )}
+                      </PermissionGate>
                       <button
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => {
@@ -613,7 +616,7 @@ export default function InvoicesPage() {
                         <LinkIcon size={16} />
                         Get payment link
                       </button>
-                      {user?.role !== 'client' && (
+                      <PermissionGate permission="delete_invoices">
                         <button
                           className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                           onClick={() => {
@@ -624,7 +627,7 @@ export default function InvoicesPage() {
                           <Trash2 size={16} />
                           Delete
                         </button>
-                      )}
+                      </PermissionGate>
                     </div>
                   )}
                 </div>
@@ -682,7 +685,7 @@ export default function InvoicesPage() {
                          <Eye size={16} />
                          View
                        </Link>
-                       {user?.role !== 'client' && (
+                       <PermissionGate permission="edit_invoices">
                          <Link
                            href={`/invoices/${invoice.id}/edit`}
                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
@@ -691,7 +694,7 @@ export default function InvoicesPage() {
                            <Edit size={16} />
                            Edit
                          </Link>
-                       )}
+                       </PermissionGate>
                        <button
                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                          onClick={() => {
@@ -702,18 +705,20 @@ export default function InvoicesPage() {
                          <Download size={16} />
                          Download
                        </button>
-                       {user?.role !== 'client' && invoice.status !== 'paid' && (
-                         <button
-                           className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                           onClick={() => {
-                             setOpenMenuId(null)
-                             handleMarkAsPaid(invoice.id)
-                           }}
-                         >
-                           <CheckCircle size={16} />
-                           Mark as paid
-                         </button>
-                       )}
+                       <PermissionGate permission="edit_invoices">
+                         {invoice.status !== 'paid' && (
+                           <button
+                             className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                             onClick={() => {
+                               setOpenMenuId(null)
+                               handleMarkAsPaid(invoice.id)
+                             }}
+                           >
+                             <CheckCircle size={16} />
+                             Mark as paid
+                           </button>
+                         )}
+                       </PermissionGate>
                        <button
                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                          onClick={() => {
@@ -734,7 +739,7 @@ export default function InvoicesPage() {
                          <LinkIcon size={16} />
                          Get payment link
                        </button>
-                       {user?.role !== 'client' && (
+                       <PermissionGate permission="delete_invoices">
                          <button
                            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
                            onClick={() => {
@@ -745,7 +750,7 @@ export default function InvoicesPage() {
                            <Trash2 size={16} />
                            Delete
                          </button>
-                       )}
+                       </PermissionGate>
                      </div>
                    </div>
                  )}

@@ -23,26 +23,39 @@ export default function RouteGuard({
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
+      console.log('RouteGuard Debug:', {
+        pathname,
+        userRole: user.role,
+        requireAdmin,
+        requirePermission,
+        requireAnyPermission,
+        canAccessRoute: canAccessRoute(user, pathname)
+      })
+      
       // Check if user can access the current route
       if (!canAccessRoute(user, pathname)) {
+        console.log('Access denied: cannot access route')
         router.push('/')
         return
       }
 
       // Check admin requirement
       if (requireAdmin && user.role !== 'admin' && user.role !== 'portal_admin') {
+        console.log('Access denied: admin required')
         router.push('/')
         return
       }
 
       // Check specific permission requirement
       if (requirePermission && !hasPermission(user, requirePermission)) {
+        console.log('Access denied: specific permission required')
         router.push('/')
         return
       }
 
       // Check any permission requirement
       if (requireAnyPermission && !requireAnyPermission.some(permission => hasPermission(user, permission))) {
+        console.log('Access denied: any permission required')
         router.push('/')
         return
       }

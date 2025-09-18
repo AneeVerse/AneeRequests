@@ -5,6 +5,7 @@ import { ArrowLeft, Download, Mail, CheckCircle, Trash2, Edit } from "lucide-rea
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import RouteGuard from "@/components/RouteGuard"
+import PermissionGate from "@/components/PermissionGate"
 
 interface Client {
   id: string
@@ -439,7 +440,7 @@ export default function InvoiceDetailPage() {
 
   if (loading) {
     return (
-      <RouteGuard>
+      <RouteGuard requireAnyPermission={['view_invoices', 'edit_invoices', 'delete_invoices']}>
         <div className="flex items-center justify-center h-full">
           <div className="text-gray-500">Loading invoice...</div>
         </div>
@@ -449,7 +450,7 @@ export default function InvoiceDetailPage() {
 
      if (error || !invoice) {
      return (
-       <RouteGuard>
+       <RouteGuard requireAnyPermission={['view_invoices', 'edit_invoices', 'delete_invoices']}>
          <div className="flex flex-col items-center justify-center h-full gap-4">
            <div className="text-red-600 text-center">{error || 'Invoice not found'}</div>
            <button
@@ -464,7 +465,7 @@ export default function InvoiceDetailPage() {
    }
 
   return (
-    <RouteGuard>
+    <RouteGuard requireAnyPermission={['view_invoices', 'edit_invoices', 'delete_invoices']}>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
@@ -495,8 +496,8 @@ export default function InvoiceDetailPage() {
                   {getStatusDisplay(invoice.status)}
                 </span>
                 
-                {user?.role !== 'client' && (
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2">
+                  <PermissionGate permission="edit_invoices">
                     <Link
                       href={`/invoices/${invoice.id}/edit`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all"
@@ -504,17 +505,19 @@ export default function InvoiceDetailPage() {
                       <Edit size={14} />
                       Edit
                     </Link>
-                    <button 
-                      onClick={handleDownload} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
-                    >
-                      <Download size={14} />
-                      Download
-                    </button>
-                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all">
-                      <Mail size={14} />
-                      Send
-                    </button>
+                  </PermissionGate>
+                  <button 
+                    onClick={handleDownload} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                  >
+                    <Download size={14} />
+                    Download
+                  </button>
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all">
+                    <Mail size={14} />
+                    Send
+                  </button>
+                  <PermissionGate permission="edit_invoices">
                     {invoice.status !== 'paid' && (
                       <button
                         onClick={handleMarkAsPaid}
@@ -524,6 +527,8 @@ export default function InvoiceDetailPage() {
                         Mark as paid
                       </button>
                     )}
+                  </PermissionGate>
+                  <PermissionGate permission="delete_invoices">
                     <button
                       onClick={handleDeleteInvoice}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-all"
@@ -531,8 +536,8 @@ export default function InvoiceDetailPage() {
                       <Trash2 size={14} />
                       Delete
                     </button>
-                  </div>
-                )}
+                  </PermissionGate>
+                </div>
               </div>
             </div>
           </div>

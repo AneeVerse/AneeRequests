@@ -213,7 +213,7 @@ export default function EditInvoicePage() {
   }
 
   return (
-    <RouteGuard requireAdmin>
+    <RouteGuard requirePermission="edit_invoices">
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
