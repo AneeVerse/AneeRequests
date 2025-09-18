@@ -420,6 +420,13 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* Demo Credentials */}
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">Demo Credentials:</h3>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p><strong>Admin:</strong> 4d.x.art@gmail.com / admin@admin</p>
+              </div>
+            </div>
 
             {/* Forgot Password Link */}
             <div className="flex items-center justify-between">
