@@ -555,18 +555,19 @@ export default function InvoiceDetailPage() {
         {/* Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-4 lg:py-6 gap-4">
               <div className="flex items-center space-x-4">
                 <Link
                   href="/invoices"
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <ArrowLeft size={18} />
-                  Back to invoices
+                  <span className="hidden sm:inline">Back to invoices</span>
+                  <span className="sm:hidden">Back</span>
                 </Link>
-                <div className="h-6 w-px bg-gray-300"></div>
+                <div className="h-6 w-px bg-gray-300 hidden lg:block"></div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">
+                  <h1 className="text-lg lg:text-xl font-bold text-gray-900">
                     Invoice {invoice.invoice_number}
                   </h1>
                   <p className="text-xs text-gray-500 mt-1">
@@ -575,55 +576,58 @@ export default function InvoiceDetailPage() {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
                   <span className="w-1.5 h-1.5 bg-current rounded-full mr-1.5"></span>
                   {getStatusDisplay(invoice.status)}
                 </span>
                 
-                <div className="flex items-center space-x-2">
+                {/* Mobile Action Buttons - Stacked */}
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <PermissionGate permission="edit_invoices">
                     <Link
                       href={`/invoices/${invoice.id}/edit`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all touch-manipulation"
                     >
                       <Edit size={14} />
-                      Edit
+                      <span className="hidden sm:inline">Edit</span>
                     </Link>
                   </PermissionGate>
                   <button 
                     onClick={handleDownload} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors touch-manipulation"
                   >
                     <Download size={14} />
-                    Download
+                    <span className="hidden sm:inline">Download</span>
                   </button>
                   <button 
                     onClick={handleSendInvoice}
                     disabled={sending}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                   >
                     <Mail size={14} />
-                    {sending ? 'Sending...' : 'Send'}
+                    <span className="hidden sm:inline">{sending ? 'Sending...' : 'Send'}</span>
+                    <span className="sm:hidden">{sending ? '...' : 'Send'}</span>
                   </button>
                   <PermissionGate permission="edit_invoices">
                     {invoice.status !== 'paid' && (
                       <button
                         onClick={handleMarkAsPaid}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 hover:border-green-300 transition-all"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 hover:border-green-300 transition-all touch-manipulation"
                       >
                         <CheckCircle size={14} />
-                        Mark as paid
+                        <span className="hidden sm:inline">Mark as paid</span>
+                        <span className="sm:hidden">Paid</span>
                       </button>
                     )}
                   </PermissionGate>
                   <PermissionGate permission="delete_invoices">
                     <button
                       onClick={handleDeleteInvoice}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-all"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-all touch-manipulation"
                     >
                       <Trash2 size={14} />
-                      Delete
+                      <span className="hidden sm:inline">Delete</span>
                     </button>
                   </PermissionGate>
                 </div>
@@ -633,17 +637,17 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-8">
             {/* Left Column - Invoice Details & Client Info */}
-            <div className="xl:col-span-2 space-y-8">
+            <div className="xl:col-span-2 space-y-4 lg:space-y-8">
               {/* Invoice Details Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
-                  <h2 className="text-base font-semibold text-primary-900">Invoice Details</h2>
+              <div className="bg-white rounded-lg lg:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-4 lg:px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
+                  <h2 className="text-sm lg:text-base font-semibold text-primary-900">Invoice Details</h2>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 lg:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">Invoice Number</label>
@@ -683,12 +687,12 @@ export default function InvoiceDetailPage() {
               </div>
 
               {/* Client Information Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
-                  <h2 className="text-base font-semibold text-primary-900">Bill To</h2>
+              <div className="bg-white rounded-lg lg:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-4 lg:px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
+                  <h2 className="text-sm lg:text-base font-semibold text-primary-900">Bill To</h2>
                 </div>
-                <div className="p-6">
-                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4">
+                <div className="p-4 lg:p-6">
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-3 lg:p-4">
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">
                       {invoice.client?.name || 'N/A'}
                     </h3>
@@ -703,33 +707,33 @@ export default function InvoiceDetailPage() {
               </div>
 
               {/* Line Items Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
-                  <h2 className="text-base font-semibold text-primary-900">Line Items</h2>
+              <div className="bg-white rounded-lg lg:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-4 lg:px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
+                  <h2 className="text-sm lg:text-base font-semibold text-primary-900">Line Items</h2>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[600px]">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
-                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
-                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th className="px-3 lg:px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="px-3 lg:px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 lg:px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                        <th className="px-3 lg:px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {invoice.line_items.map((item, index) => (
                         <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <p className="text-xs font-medium text-gray-900">{item.description}</p>
+                          <td className="px-3 lg:px-4 py-3">
+                            <p className="text-xs font-medium text-gray-900 break-words">{item.description}</p>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-600">
+                          <td className="px-3 lg:px-4 py-3 text-right text-xs text-gray-600 whitespace-nowrap">
                             {formatCurrency(item.rate)}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right text-xs text-gray-600">
+                          <td className="px-3 lg:px-4 py-3 text-right text-xs text-gray-600 whitespace-nowrap">
                             {item.quantity}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-semibold text-gray-900">
+                          <td className="px-3 lg:px-4 py-3 text-right text-xs font-semibold text-gray-900 whitespace-nowrap">
                             {formatCurrency(item.line_total)}
                           </td>
                         </tr>
@@ -741,12 +745,12 @@ export default function InvoiceDetailPage() {
 
               {/* Notes Card */}
               {invoice.notes && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
-                  <h2 className="text-base font-semibold text-primary-900">Notes</h2>
+                <div className="bg-white rounded-lg lg:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-4 lg:px-6 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200">
+                  <h2 className="text-sm lg:text-base font-semibold text-primary-900">Notes</h2>
                 </div>
-                  <div className="p-6">
-                    <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="p-4 lg:p-6">
+                    <div className="bg-gray-50 rounded-lg p-3 lg:p-4">
                       <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{invoice.notes}</p>
                     </div>
                   </div>
@@ -756,13 +760,13 @@ export default function InvoiceDetailPage() {
 
             {/* Right Column - Summary */}
             <div className="xl:col-span-1">
-              <div className="sticky top-8">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700">
-                    <h2 className="text-base font-semibold text-white">Summary</h2>
+              <div className="sticky top-4 lg:top-8">
+                <div className="bg-white rounded-lg lg:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-4 lg:px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700">
+                    <h2 className="text-sm lg:text-base font-semibold text-white">Summary</h2>
                   </div>
-                  <div className="p-6">
-                    <div className="space-y-4">
+                  <div className="p-4 lg:p-6">
+                    <div className="space-y-3 lg:space-y-4">
                       <div className="flex justify-between items-center py-1">
                         <span className="text-xs font-medium text-gray-600">Subtotal</span>
                         <span className="text-xs font-semibold text-gray-900">{formatCurrency(invoice.subtotal)}</span>

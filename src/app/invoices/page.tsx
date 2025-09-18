@@ -185,9 +185,14 @@ export default function InvoicesPage() {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    // Use a small delay to ensure menu item clicks are processed first
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 100)
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      clearTimeout(timeoutId)
+      document.removeEventListener('click', handleClickOutside)
     }
   }, [openMenuId])
 
@@ -651,12 +656,17 @@ export default function InvoicesPage() {
                         <span className="w-1 h-1 bg-current rounded-full mr-1"></span>
                         {getStatusDisplay(invoice.status)}
                       </span>
-                     <button 
-                       onClick={() => toggleMenu(invoice.id)}
-                       className="p-1 text-gray-400 hover:text-gray-600"
-                     >
-                       <MoreHorizontal size={16} />
-                     </button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          console.log('Menu toggle clicked for invoice:', invoice.id)
+                          toggleMenu(invoice.id)
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 touch-manipulation"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
                    </div>
                  </div>
                  
@@ -675,81 +685,110 @@ export default function InvoicesPage() {
                  
                  {/* Mobile Menu */}
                  {openMenuId === invoice.id && (
-                   <div className="border-t border-gray-100 pt-3 mt-3">
+                   <div 
+                     ref={(el) => { menuRefs.current[invoice.id] = el }}
+                     className="border-t border-gray-100 pt-3 mt-3"
+                   >
                      <div className="space-y-1">
-                       <Link
-                         href={`/invoices/${invoice.id}`}
-                         className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                         onClick={() => setOpenMenuId(null)}
-                       >
-                         <Eye size={16} />
-                         View
-                       </Link>
+                        <button
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md touch-manipulation text-left"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('View button clicked for invoice:', invoice.id)
+                            setOpenMenuId(null)
+                            window.location.href = `/invoices/${invoice.id}`
+                          }}
+                        >
+                          <Eye size={16} />
+                          View
+                        </button>
                        <PermissionGate permission="edit_invoices">
-                         <Link
-                           href={`/invoices/${invoice.id}/edit`}
-                           className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                           onClick={() => setOpenMenuId(null)}
-                         >
-                           <Edit size={16} />
-                           Edit
-                         </Link>
+                          <button
+                            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md touch-manipulation text-left"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              console.log('Edit button clicked for invoice:', invoice.id)
+                              setOpenMenuId(null)
+                              window.location.href = `/invoices/${invoice.id}/edit`
+                            }}
+                          >
+                            <Edit size={16} />
+                            Edit
+                          </button>
                        </PermissionGate>
-                       <button
-                         className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                         onClick={() => {
-                           setOpenMenuId(null)
-                           // Download functionality would go here
-                         }}
-                       >
-                         <Download size={16} />
-                         Download
-                       </button>
+                        <button
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md touch-manipulation text-left"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('Download button clicked for invoice:', invoice.id)
+                            setOpenMenuId(null)
+                            // Navigate to detail page with auto-download flag
+                            window.location.href = `/invoices/${invoice.id}?download=1`
+                          }}
+                        >
+                          <Download size={16} />
+                          Download
+                        </button>
                        <PermissionGate permission="edit_invoices">
                          {invoice.status !== 'paid' && (
-                           <button
-                             className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                             onClick={() => {
-                               setOpenMenuId(null)
-                               handleMarkAsPaid(invoice.id)
-                             }}
-                           >
-                             <CheckCircle size={16} />
-                             Mark as paid
-                           </button>
+                            <button
+                              className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md touch-manipulation text-left"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                console.log('Mark as paid button clicked for invoice:', invoice.id)
+                                setOpenMenuId(null)
+                                handleMarkAsPaid(invoice.id)
+                              }}
+                            >
+                              <CheckCircle size={16} />
+                              Mark as paid
+                            </button>
                          )}
                        </PermissionGate>
-                       <button
-                         className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                         onClick={() => {
-                           setOpenMenuId(null)
-                           // Request payment functionality would go here
-                         }}
-                       >
-                         <Mail size={16} />
-                         Request payment by email
-                       </button>
-                       <button
-                         className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-                         onClick={() => {
-                           setOpenMenuId(null)
-                           // Get payment link functionality would go here
-                         }}
-                       >
-                         <LinkIcon size={16} />
-                         Get payment link
-                       </button>
+                        <button
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md touch-manipulation text-left"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('Request payment button clicked for invoice:', invoice.id)
+                            setOpenMenuId(null)
+                            // Request payment functionality would go here
+                          }}
+                        >
+                          <Mail size={16} />
+                          Request payment by email
+                        </button>
+                        <button
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md touch-manipulation text-left"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('Get payment link button clicked for invoice:', invoice.id)
+                            setOpenMenuId(null)
+                            // Get payment link functionality would go here
+                          }}
+                        >
+                          <LinkIcon size={16} />
+                          Get payment link
+                        </button>
                        <PermissionGate permission="delete_invoices">
-                         <button
-                           className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-                           onClick={() => {
-                             setOpenMenuId(null)
-                             handleDeleteInvoice(invoice.id)
-                           }}
-                         >
-                           <Trash2 size={16} />
-                           Delete
-                         </button>
+                          <button
+                            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md touch-manipulation text-left"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              console.log('Delete button clicked for invoice:', invoice.id)
+                              setOpenMenuId(null)
+                              handleDeleteInvoice(invoice.id)
+                            }}
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </button>
                        </PermissionGate>
                      </div>
                    </div>
