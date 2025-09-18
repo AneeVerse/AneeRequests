@@ -49,11 +49,21 @@ export async function PATCH(
     }
     
     const activityObj = updatedActivity.toObject()
-    
-    return NextResponse.json({
+    const activityWithId = {
       ...activityObj,
       id: activityObj._id.toString()
-    })
+    }
+
+    // Broadcast to WebSocket clients
+    if (global.io) {
+      global.io.to(`request:${id}`).emit('messageUpdated', {
+        id: activityId,
+        request_id: id,
+        description: body.description
+      })
+    }
+    
+    return NextResponse.json(activityWithId)
   } catch (error) {
     console.error('Error updating activity:', error)
     return NextResponse.json(
@@ -81,6 +91,14 @@ export async function DELETE(
         { error: 'Activity not found' },
         { status: 404 }
       )
+    }
+
+    // Broadcast to WebSocket clients
+    if (global.io) {
+      global.io.to(`request:${id}`).emit('messageDeleted', {
+        id: activityId,
+        request_id: id
+      })
     }
     
     return NextResponse.json({ success: true })

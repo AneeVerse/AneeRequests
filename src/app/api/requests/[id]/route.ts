@@ -72,7 +72,14 @@ export async function POST(
     }).save()
 
     const obj = activity.toObject()
-    return NextResponse.json({ ...obj, id: String(obj._id) }, { status: 201 })
+    const activityWithId = { ...obj, id: String(obj._id) }
+
+    // Broadcast to WebSocket clients
+    if (global.io) {
+      global.io.to(`request:${id}`).emit('newMessage', activityWithId)
+    }
+
+    return NextResponse.json(activityWithId, { status: 201 })
   } catch (error) {
     console.error('Error logging activity:', error)
     return NextResponse.json({ error: 'Failed to log activity' }, { status: 500 })

@@ -1,9 +1,11 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { ChevronDown, User, FileText, Trash2, Edit2 } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import SimpleTextEditor from "@/components/SimpleTextEditor"
+import { useWebSocket } from "@/lib/hooks/useWebSocket"
+import WebSocketStatus from "@/components/WebSocketStatus"
 
 interface Client {
   id: string
@@ -49,6 +51,17 @@ export default function RequestDetailPage() {
   const { user } = useAuth()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
+  // WebSocket callback for new messages
+  const handleNewMessage = useCallback((message: ActivityLogEntry) => {
+    // Only add messages from other users (not from current user)
+    if (message.metadata?.user_id !== user?.id) {
+      setActivities(prev => [...prev, message])
+      scrollToBottom()
+    }
+  }, [user?.id])
+
+  // WebSocket hook
+  useWebSocket(params.id as string, handleNewMessage)
   
   const [request, setRequest] = useState<Request | null>(null)
   const [activities, setActivities] = useState<ActivityLogEntry[]>([])
@@ -291,6 +304,7 @@ export default function RequestDetailPage() {
 
     setSendingMessage(true)
     try {
+      // Save to database via API (this will also broadcast via WebSocket)
       const response = await fetch(`/api/requests/${request.id}`, {
         method: 'POST',
         headers: {
@@ -574,6 +588,7 @@ export default function RequestDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
         <h1 className="text-xl font-semibold text-gray-900">Request Details</h1>
+        <WebSocketStatus requestId={params.id as string} />
       </div>
 
       {/* Content */}
