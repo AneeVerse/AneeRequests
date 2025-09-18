@@ -1,9 +1,11 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/contexts/AuthContext"
-import { hasPermission, getRoleDisplayName } from "@/lib/permissions"
+import { hasPermission, getRoleDisplayName, Permission } from "@/lib/permissions"
+import { User } from "@/lib/types/auth"
 import { 
   LayoutDashboard, 
   FileText, 
@@ -13,15 +15,15 @@ import {
   Settings,
   ChevronDown,
   LogOut,
-  User,
+  User as UserIcon,
   Shield,
   Menu,
   X,
   BarChart3
 } from "lucide-react"
 
-const getSidebarItems = (user: any) => {
-  const allItems = [
+const getSidebarItems = (user: User | null) => {
+  const allItems: Array<{ name: string; href: string; icon: React.ComponentType<{ size: number }>; permission: Permission }> = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard, permission: "view_dashboard" },
     { name: "Requests", href: "/requests", icon: FileText, permission: "view_requests" },
     { name: "Clients", href: "/clients", icon: Users, permission: "view_clients" },
@@ -32,7 +34,7 @@ const getSidebarItems = (user: any) => {
   ]
 
   // Filter items based on user permissions
-  return allItems.filter(item => hasPermission(user, item.permission as any))
+  return allItems.filter(item => hasPermission(user, item.permission))
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -96,7 +98,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-between p-4 border-b border-gray-200 lg:hidden">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <img src="/aneeverse-logo.svg" alt="Aneeverse Logo" className="w-6 h-6" />
+              <Image src="/aneeverse-logo.svg" alt="Aneeverse Logo" width={24} height={24} />
             </div>
             <span className="font-semibold text-gray-900 text-base">AneeRequests</span>
           </div>
@@ -112,7 +114,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="hidden lg:block p-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <img src="/aneeverse-logo.svg" alt="Aneeverse Logo" className="w-6 h-6" />
+              <Image src="/aneeverse-logo.svg" alt="Aneeverse Logo" width={24} height={24} />
             </div>
             <span className="font-semibold text-gray-900 text-base">AneeRequests</span>
           </div>
@@ -182,7 +184,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       </>
                     ) : user?.role === 'client' ? (
                       <>
-                        <User size={12} className="text-blue-600" />
+                        <UserIcon size={12} className="text-blue-600" />
                         <span className="text-xs text-blue-600 font-medium">{getRoleDisplayName(user?.role || '')}</span>
                       </>
                     ) : (
@@ -212,7 +214,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   onClick={() => setShowUserMenu(false)}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  <User size={14} />
+                  <UserIcon size={14} />
                   Your Profile
                 </Link>
                 

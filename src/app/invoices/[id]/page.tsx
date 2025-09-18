@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Download, Mail, CheckCircle, Trash2, Edit } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/lib/contexts/AuthContext"
 import RouteGuard from "@/components/RouteGuard"
 import PermissionGate from "@/components/PermissionGate"
 import { useToast } from "@/components/Toast"
@@ -47,7 +46,6 @@ export default function InvoiceDetailPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuth()
   const { addToast, ToastContainer } = useToast()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
@@ -478,7 +476,7 @@ export default function InvoiceDetailPage() {
     </html>`
   }
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     if (!invoice) return
     const html = buildPrintableHtml(invoice)
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
@@ -490,14 +488,14 @@ export default function InvoiceDetailPage() {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-  }
+  }, [invoice])
 
   // Auto-download when navigated with ?download=1
   useEffect(() => {
     if (invoice && searchParams?.get('download') === '1') {
       handleDownload()
     }
-  }, [invoice, searchParams])
+  }, [invoice, searchParams, handleDownload])
 
   if (loading) {
     return (

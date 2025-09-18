@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Filter, LayoutGrid, ChevronDown, MoreHorizontal, Plus, Eye, Edit, UserCheck, ArrowRightLeft, Trash2, X, Search, Menu, Phone, Mail, Building } from "lucide-react"
+import { Filter, LayoutGrid, ChevronDown, MoreHorizontal, Plus, Eye, Edit, UserCheck, ArrowRightLeft, Trash2, X, Search, Menu, Mail, Building } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import RouteGuard from "@/components/RouteGuard"

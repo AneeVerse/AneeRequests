@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ChevronDown, Plus, Trash2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -21,25 +21,6 @@ interface LineItem {
   line_total: number
 }
 
-interface Invoice {
-  id: string
-  invoice_number: string
-  client_id: string
-  client?: Client
-  date_of_issue: string
-  due_date?: string
-  payment_method?: string
-  payment_reference?: string
-  currency?: string
-  status: string
-  line_items: LineItem[]
-  subtotal: number
-  tax_amount: number
-  total: number
-  notes?: string
-  created_at: string
-  updated_at: string
-}
 
 export default function EditInvoicePage() {
   const params = useParams()
@@ -79,16 +60,7 @@ export default function EditInvoicePage() {
     }).format(amount)
   }
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  // Force re-render when currency changes to update formatting
-  useEffect(() => {
-    setCurrencyUpdateKey(prev => prev + 1)
-  }, [currency])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [clientsResponse, invoiceResponse] = await Promise.all([
@@ -113,7 +85,7 @@ export default function EditInvoicePage() {
         setNotes(invoiceData.notes || "")
         
         // Convert line items to include id for editing
-        const itemsWithIds = invoiceData.line_items.map((item: any, index: number) => ({
+        const itemsWithIds = invoiceData.line_items.map((item: Record<string, unknown>, index: number) => ({
           id: `item-${index}`,
           description: item.description,
           rate: item.rate,
@@ -128,7 +100,16 @@ export default function EditInvoicePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Force re-render when currency changes to update formatting
+  useEffect(() => {
+    setCurrencyUpdateKey(prev => prev + 1)
+  }, [currency])
 
   const addLineItem = () => {
     const newItem: LineItem = {

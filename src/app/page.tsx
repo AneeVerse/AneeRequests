@@ -1,9 +1,9 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Filter, List, Plus, Bell, ChevronDown, X, Search, Calendar, Users, FileText, DollarSign, Star, Settings, Eye, Edit, MessageCircle } from "lucide-react"
+import { Filter, List, Plus, Bell, ChevronDown, X, Search, Calendar, Users, FileText, DollarSign, Star } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
-import { hasPermission, getRoleDisplayName, getRoleDescription } from "@/lib/permissions"
+import { getRoleDisplayName, getRoleDescription } from "@/lib/permissions"
 import PermissionGate from "@/components/PermissionGate"
 import Link from "next/link"
 
@@ -142,9 +142,7 @@ export default function DashboardPage() {
       
       const isImpersonating = (user?.id || '').startsWith('impersonated-')
       const isImpersonatingTeamMember = (user?.id || '').startsWith('impersonated-team-')
-      const effectiveRole = isImpersonatingTeamMember ? user?.role : (isImpersonating ? 'admin' : user?.role)
-      
-      console.log('Dashboard load - User:', user, 'IsImpersonating:', isImpersonating, 'IsImpersonatingTeamMember:', isImpersonatingTeamMember, 'EffectiveRole:', effectiveRole)
+      console.log('Dashboard load - User:', user, 'IsImpersonating:', isImpersonating, 'IsImpersonatingTeamMember:', isImpersonatingTeamMember)
       
       if (user?.role === 'admin' && !isImpersonating) {
         // Admin sees all data
@@ -182,7 +180,7 @@ export default function DashboardPage() {
           team: 0
         })
         setRecentRequests(clientRequests)
-      } else if (isImpersonating && effectiveRole === 'admin') {
+      } else if (isImpersonating) {
         // When impersonating a client, show admin interface but with client's data
         let url = '/api/requests'
         const clientId = (user as { clientId?: string })?.clientId
@@ -356,9 +354,7 @@ export default function DashboardPage() {
   }
 
   const isImpersonating = (user?.id || '').startsWith('impersonated-')
-  const isImpersonatingTeamMember = (user?.id || '').startsWith('impersonated-team-')
   // When impersonating, show admin interface but with client's data
-  const effectiveRole = isImpersonatingTeamMember ? user?.role : (isImpersonating ? 'admin' : user?.role)
 
   return (
     <div className="flex flex-col h-full bg-gray-50">

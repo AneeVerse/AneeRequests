@@ -358,10 +358,6 @@ export default function ClientDetailPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    // Deprecated, keep for safety if referenced elsewhere
-    return 'bg-gray-100 text-gray-700'
-  }
   
   // Admin requests layout helpers for consistent pills
   const getStatusStyle = (status: string) => {

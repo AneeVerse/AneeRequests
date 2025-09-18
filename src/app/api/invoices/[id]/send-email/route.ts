@@ -36,19 +36,19 @@ export async function POST(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
-    const clientData = (invoice as any).client_id as Record<string, unknown> | undefined
+    const clientData = (invoice as Record<string, unknown>).client_id as Record<string, unknown> | undefined
     if (!clientData || !clientData.email) {
       return NextResponse.json({ error: 'Client email not found' }, { status: 400 })
     }
 
     // Generate PDF
-    const pdfBuffer = await generateInvoicePDF(invoice, clientData)
+    const pdfBuffer = await generateInvoicePDF(invoice as Record<string, unknown>, clientData)
 
     // Send email
     await sendInvoiceEmail(
       clientData.email as string,
       clientData.name as string,
-      (invoice as any).invoice_number as string,
+      (invoice as Record<string, unknown>).invoice_number as string,
       Buffer.from(pdfBuffer)
     )
 
@@ -69,7 +69,7 @@ export async function POST(
   }
 }
 
-async function generateInvoicePDF(invoice: any, clientData: Record<string, unknown>) {
+async function generateInvoicePDF(invoice: Record<string, unknown>, clientData: Record<string, unknown>) {
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -100,9 +100,9 @@ async function generateInvoicePDF(invoice: any, clientData: Record<string, unkno
   }
 }
 
-function generateInvoiceHTML(invoice: any, clientData: Record<string, unknown>) {
+function generateInvoiceHTML(invoice: Record<string, unknown>, clientData: Record<string, unknown>) {
   const formatCurrency = (amount: number) => {
-    const currency = invoice.currency || 'USD'
+    const currency = (invoice.currency as string) || 'USD'
     const locale = currency === 'INR' ? 'en-IN' : 
                    currency === 'EUR' ? 'en-EU' : 
                    currency === 'GBP' ? 'en-GB' : 
@@ -122,12 +122,12 @@ function generateInvoiceHTML(invoice: any, clientData: Record<string, unknown>) 
     })
   }
 
-  const lineItemsRows = invoice.line_items.map((item: any) => `
+  const lineItemsRows = (invoice.line_items as Array<Record<string, unknown>>).map((item: Record<string, unknown>) => `
     <tr>
       <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;vertical-align:top;">${item.description}</td>
-      <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top;">${formatCurrency(item.rate)}</td>
+      <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top;">${formatCurrency(item.rate as number)}</td>
       <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top;">${item.quantity}</td>
-      <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top;font-weight:600;">${formatCurrency(item.line_total)}</td>
+      <td style="padding:16px 20px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top;font-weight:600;">${formatCurrency(item.line_total as number)}</td>
     </tr>
   `).join('')
 
@@ -328,10 +328,10 @@ function generateInvoiceHTML(invoice: any, clientData: Record<string, unknown>) 
             <div class="tagline">Professional Request Management</div>
           </div>
           <div class="invoice-details">
-            <div class="status-badge status-${invoice.status}">${invoice.status.toUpperCase()}</div>
+            <div class="status-badge status-${invoice.status}">${(invoice.status as string).toUpperCase()}</div>
             <div class="invoice-number">${invoice.invoice_number}</div>
-            <div class="invoice-date">Date of Issue: ${formatDate(invoice.date_of_issue)}</div>
-            ${invoice.due_date ? `<div class="invoice-date" style="margin-top: 8px;">Due Date: ${formatDate(invoice.due_date)}</div>` : ''}
+            <div class="invoice-date">Date of Issue: ${formatDate(invoice.date_of_issue as string)}</div>
+            ${invoice.due_date ? `<div class="invoice-date" style="margin-top: 8px;">Due Date: ${formatDate(invoice.due_date as string)}</div>` : ''}
           </div>
         </div>
 
@@ -359,7 +359,7 @@ function generateInvoiceHTML(invoice: any, clientData: Record<string, unknown>) 
           <tfoot>
             <tr>
               <td colspan="3" style="text-align:right; font-weight:600; color: #073742;">Total</td>
-              <td style="text-align:right; font-weight:700; color: #073742; font-size: 18px;">${formatCurrency(invoice.total)}</td>
+              <td style="text-align:right; font-weight:700; color: #073742; font-size: 18px;">${formatCurrency(invoice.total as number)}</td>
             </tr>
           </tfoot>
         </table>
@@ -367,7 +367,7 @@ function generateInvoiceHTML(invoice: any, clientData: Record<string, unknown>) 
         ${invoice.notes ? `
         <div class="notes-section">
           <h3>Notes</h3>
-          <div class="notes-content">${invoice.notes.replace(/</g,'&lt;')}</div>
+          <div class="notes-content">${(invoice.notes as string).replace(/</g,'&lt;')}</div>
         </div>
         ` : ''}
 

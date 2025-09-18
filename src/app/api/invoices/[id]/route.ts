@@ -26,7 +26,7 @@ export async function GET(
 
 
     // Map the populated client data to the expected structure
-    const clientData = invoice.client_id as Record<string, unknown> | undefined
+    const clientData = (invoice as Record<string, unknown>).client_id as Record<string, unknown> | undefined
     const mappedInvoice = {
       ...invoice,
       id: String((invoice as Record<string, unknown>)._id),
