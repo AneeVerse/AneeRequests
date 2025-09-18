@@ -44,7 +44,7 @@ function StatusDropdown({
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+      className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto"
     >
       <div className="p-3 border-b border-gray-200">
         <input
@@ -63,7 +63,7 @@ function StatusDropdown({
               onStatusChange(option.value)
               onClose()
             }}
-            className={`w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 transition-colors ${
+            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 active:bg-gray-100 transition-colors ${
               currentStatus === option.value ? 'bg-gray-200' : ''
             }`}
           >
@@ -111,7 +111,7 @@ function PriorityDropdown({
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full left-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-50"
+      className="absolute top-full left-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto"
     >
       <div className="py-2">
         {priorityOptions.map((option) => (
@@ -121,7 +121,7 @@ function PriorityDropdown({
               onPriorityChange(option.value)
               onClose()
             }}
-            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-center gap-3 ${
               currentPriority === option.value ? 'bg-gray-100' : ''
             }`}
           >
@@ -1047,7 +1047,7 @@ export default function RequestsPage() {
         {!loading && !error && filteredRequests.map((request) => (
           <div
             key={request.id}
-            className="p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer bg-white shadow-sm mb-4 mx-4"
+            className="p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors bg-white shadow-sm mb-4 mx-4"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1 min-w-0">
@@ -1065,60 +1065,144 @@ export default function RequestsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-2 gap-3 text-xs">
               {effectiveRole === 'admin' && (
-                <div>
-                  <div className="text-gray-500 text-xs font-medium mb-1">CLIENT</div>
+                <div className="mb-2">
+                  <div className="text-gray-500 text-xs font-medium mb-2">CLIENT</div>
                   <div className="font-medium text-gray-900 text-xs">{request.client?.name || 'Unknown Client'}</div>
                   <div className="text-gray-500 text-xs">{request.client?.client_company?.name || ''}</div>
                 </div>
               )}
               
-              <div>
-                <div className="text-gray-500 text-xs font-medium mb-1">STATUS</div>
+              <div className="mb-2">
+                <div className="text-gray-500 text-xs font-medium mb-2">STATUS</div>
                 <div className="flex items-center gap-2">
-                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
-                      {request.status.replace(/_/g, ' ')}
-                    </span>
+                  {editingField?.requestId === request.id && editingField?.field === 'status' && canEdit ? (
+                    <div className="relative">
+                      <StatusDropdown
+                        currentStatus={request.status}
+                        onStatusChange={(newStatus) => {
+                          handleFieldUpdate(request.id, 'status', newStatus)
+                        }}
+                        onClose={() => setEditingField(null)}
+                      />
+                    </div>
+                  ) : (
+                    <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-md min-h-[44px] ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors active:bg-gray-200' : ''}`} onClick={canEdit ? (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setEditingField({requestId: request.id, field: 'status'})
+                    } : undefined}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusStyle(request.status).bg} ${getStatusStyle(request.status).text}`}>
+                        {request.status.replace(/_/g, ' ')}
+                      </span>
+                      {canEdit && <ChevronDown size={12} className="text-gray-400" />}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {effectiveRole === 'admin' && (
-                <div>
-                  <div className="text-gray-500 text-xs font-medium mb-1">ASSIGNED TO</div>
+                <div className="mb-2">
+                  <div className="text-gray-500 text-xs font-medium mb-2">ASSIGNED TO</div>
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                      </svg>
-                    </div>
-                    <span className="text-gray-600 text-xs">{getMemberName(request.assigned_to) || 'None'}</span>
+                    {editingField?.requestId === request.id && editingField?.field === 'assigned_to' && canEdit ? (
+                      <AssignDropdown
+                        currentAssignedId={request.assigned_to}
+                        onSelect={(memberId) => handleFieldUpdate(request.id, 'assigned_to', memberId)}
+                        onClose={() => setEditingField(null)}
+                      />
+                    ) : (
+                      <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-md min-h-[44px] ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors active:bg-gray-200' : ''}`} title={getMemberName(request.assigned_to) || 'Unassigned'} onClick={canEdit ? (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setEditingField({ requestId: request.id, field: 'assigned_to' })
+                      } : undefined}>
+                        <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                          </svg>
+                        </div>
+                        <span className="text-gray-600 text-xs truncate">{getMemberName(request.assigned_to) || 'None'}</span>
+                        {canEdit && <ChevronDown size={12} className="text-gray-400" />}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              <div>
-                <div className="text-gray-500 text-xs font-medium mb-1">PRIORITY</div>
+              <div className="mb-2">
+                <div className="text-gray-500 text-xs font-medium mb-2">PRIORITY</div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
-                  <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>
-                    {request.priority}
-                  </span>
+                  {editingField?.requestId === request.id && editingField?.field === 'priority' && canEdit ? (
+                    <div className="relative w-full max-w-[120px]">
+                      <PriorityDropdown
+                        currentPriority={request.priority}
+                        onPriorityChange={(newPriority) => {
+                          handleFieldUpdate(request.id, 'priority', newPriority)
+                        }}
+                        onClose={() => setEditingField(null)}
+                      />
+                    </div>
+                  ) : (
+                    <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-md min-h-[44px] ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors active:bg-gray-200' : ''}`} onClick={canEdit ? (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setEditingField({requestId: request.id, field: 'priority'})
+                    } : undefined}>
+                      <div className={`w-2 h-2 rounded-full ${getPriorityStyle(request.priority).dot}`}></div>
+                      <span className={`text-xs font-medium capitalize ${getPriorityStyle(request.priority).text}`}>
+                        {request.priority}
+                      </span>
+                      {canEdit && <ChevronDown size={12} className="text-gray-400" />}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div>
-                <div className="text-gray-500 text-xs font-medium mb-1">UPDATED</div>
+              <div className="mb-2">
+                <div className="text-gray-500 text-xs font-medium mb-2">UPDATED</div>
                 <div className="text-gray-900 text-xs">{formatDate(request.updated_at)}</div>
               </div>
 
-              <div>
-                <div className="text-gray-500 text-xs font-medium mb-1">DUE DATE</div>
-                <div className="text-gray-900 text-xs">{request.due_date ? formatDate(request.due_date) : 'Not set'}</div>
+              <div className="mb-2">
+                <div className="text-gray-500 text-xs font-medium mb-2">DUE DATE</div>
+                <div className="flex items-center gap-2">
+                  {editingField?.requestId === request.id && editingField?.field === 'due_date' && canEdit ? (
+                    <div className="relative w-full max-w-[150px]">
+                      <input
+                        type="date"
+                        value={formatDateForInput(request.due_date || '')}
+                        onChange={(e) => {
+                          e.preventDefault()
+                          handleFieldUpdate(request.id, 'due_date', e.target.value)
+                        }}
+                        onBlur={() => setEditingField(null)}
+                        autoFocus
+                        className="w-full text-xs border border-gray-300 rounded-md py-1 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm z-10 relative"
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none">
+                        <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`inline-flex items-center px-3 py-2 rounded-md min-h-[44px] ${canEdit ? 'cursor-pointer hover:bg-gray-100 transition-colors active:bg-gray-200' : ''}`} onClick={canEdit ? (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setEditingField({requestId: request.id, field: 'due_date'})
+                    } : undefined}>
+                      <span className="text-gray-900 text-xs">{request.due_date ? formatDate(request.due_date) : 'Not set'}</span>
+                      {canEdit && <ChevronDown size={12} className="text-gray-400" />}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <div className="text-gray-500 text-xs font-medium mb-1">CREATED</div>
+              <div className="mb-2">
+                <div className="text-gray-500 text-xs font-medium mb-2">CREATED</div>
                 <div className="text-gray-900 text-xs">{formatDate(request.created_at)}</div>
               </div>
             </div>
@@ -1211,7 +1295,7 @@ function AssignDropdown({ currentAssignedId, onSelect, onClose }: { currentAssig
 
   return (
     <div className="relative">
-      <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg w-64 p-2" onClick={() => {}}>
+      <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg w-64 p-2 max-h-60 overflow-y-auto" onClick={() => {}}>
         <div className="flex items-center justify-between px-2 pb-2">
           <div className="text-xs font-medium text-gray-500">Assign to</div>
           <button className="text-gray-400 hover:text-gray-600" onClick={onClose}>×</button>
@@ -1222,7 +1306,7 @@ function AssignDropdown({ currentAssignedId, onSelect, onClose }: { currentAssig
           <ul className="max-h-60 overflow-auto">
             <li>
               <button
-                className={`w-full text-left px-2 py-2 text-sm rounded-md hover:bg-gray-50 ${!currentAssignedId ? 'text-primary-600' : 'text-gray-700'}`}
+                className={`w-full text-left px-2 py-2 text-sm rounded-md hover:bg-gray-50 active:bg-gray-100 ${!currentAssignedId ? 'text-primary-600' : 'text-gray-700'}`}
                 onClick={() => { onSelect(''); onClose() }}
               >
                 Unassigned
@@ -1231,7 +1315,7 @@ function AssignDropdown({ currentAssignedId, onSelect, onClose }: { currentAssig
             {members.map((m) => (
               <li key={m.id}>
                 <button
-                  className={`w-full text-left px-2 py-2 text-sm rounded-md hover:bg-gray-50 ${currentAssignedId === m.id ? 'text-primary-600' : 'text-gray-700'}`}
+                  className={`w-full text-left px-2 py-2 text-sm rounded-md hover:bg-gray-50 active:bg-gray-100 ${currentAssignedId === m.id ? 'text-primary-600' : 'text-gray-700'}`}
                   onClick={() => { onSelect(m.id); onClose() }}
                 >
                   {m.name} <span className="text-gray-400">({m.email})</span>
