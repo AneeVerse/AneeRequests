@@ -53,11 +53,10 @@ export async function GET(request: NextRequest) {
         id: String(invoice._id),
         total: invoice.total || invoice.amount || 0, // Use total or fallback to amount
         client: clientData ? {
-          ...clientData,
           id: String((clientData as { _id: unknown })._id),
-          client_company: clientData.client_company_name ? {
-            name: clientData.client_company_name as string
-          } : undefined
+          name: clientData.name as string,
+          email: clientData.email as string,
+          client_company_name: clientData.client_company_name as string
         } : undefined
       };
     })

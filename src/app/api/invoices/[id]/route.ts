@@ -24,11 +24,24 @@ export async function GET(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
-    return NextResponse.json({
+    // Map the populated client data to the expected structure
+    const clientData = invoice.client_id as Record<string, unknown> | undefined
+    const mappedInvoice = {
       ...invoice,
       id: String((invoice as Record<string, unknown>)._id),
-      total: (invoice as Record<string, unknown>).total || (invoice as Record<string, unknown>).amount || 0
-    })
+      total: (invoice as Record<string, unknown>).total || (invoice as Record<string, unknown>).amount || 0,
+      client: clientData ? {
+        id: String((clientData as { _id: unknown })._id),
+        name: clientData.name as string,
+        email: clientData.email as string,
+        client_company_name: clientData.client_company_name as string
+      } : undefined
+    }
+
+    // Remove the original client_id field since we've mapped it to client
+    delete (mappedInvoice as Record<string, unknown>).client_id
+
+    return NextResponse.json(mappedInvoice)
   } catch (error) {
     console.error('Error fetching invoice:', error)
     return NextResponse.json({ error: 'Failed to fetch invoice' }, { status: 500 })
