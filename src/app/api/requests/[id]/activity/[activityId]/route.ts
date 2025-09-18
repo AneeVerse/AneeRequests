@@ -54,13 +54,23 @@ export async function PATCH(
       id: activityObj._id.toString()
     }
 
-    // Broadcast to WebSocket clients
-    if (global.io) {
-      global.io.to(`request:${id}`).emit('messageUpdated', {
-        id: activityId,
-        request_id: id,
-        description: body.description
+    // Broadcast to WebSocket server for real-time updates
+    try {
+      await fetch('http://localhost:3001/api/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: id,
+          event: 'messageUpdated',
+          messageData: {
+            id: activityId,
+            request_id: id,
+            description: body.description
+          }
+        })
       })
+    } catch (error) {
+      console.error('Failed to broadcast message update:', error)
     }
     
     return NextResponse.json(activityWithId)
@@ -93,12 +103,22 @@ export async function DELETE(
       )
     }
 
-    // Broadcast to WebSocket clients
-    if (global.io) {
-      global.io.to(`request:${id}`).emit('messageDeleted', {
-        id: activityId,
-        request_id: id
+    // Broadcast to WebSocket server for real-time updates
+    try {
+      await fetch('http://localhost:3001/api/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: id,
+          event: 'messageDeleted',
+          messageData: {
+            id: activityId,
+            request_id: id
+          }
+        })
       })
+    } catch (error) {
+      console.error('Failed to broadcast message deletion:', error)
     }
     
     return NextResponse.json({ success: true })

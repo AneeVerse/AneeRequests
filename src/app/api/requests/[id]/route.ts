@@ -74,9 +74,19 @@ export async function POST(
     const obj = activity.toObject()
     const activityWithId = { ...obj, id: String(obj._id) }
 
-    // Broadcast to WebSocket clients
-    if (global.io) {
-      global.io.to(`request:${id}`).emit('newMessage', activityWithId)
+    // Broadcast to WebSocket server for real-time updates
+    try {
+      await fetch('http://localhost:3001/api/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: id,
+          event: 'newMessage',
+          messageData: activityWithId
+        })
+      })
+    } catch (error) {
+      console.error('Failed to broadcast message:', error)
     }
 
     return NextResponse.json(activityWithId, { status: 201 })

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Server Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 WebSocket Server Test</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Disconnected
+        </div>
+
+        <div class="controls">
+            <h3>Connection</h3>
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+
+        <div class="controls">
+            <h3>Room Management</h3>
+            <input type="text" id="requestId" placeholder="Request ID" value="test-request-123">
+            <button onclick="joinRoom()">Join Room</button>
+            <button onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <div class="controls">
+            <h3>Send Message</h3>
+            <input type="text" id="action" placeholder="Action" value="message_posted">
+            <textarea id="description" placeholder="Description" rows="3">This is a test message from the browser!</textarea>
+            <button onclick="sendMessage()">Send Message</button>
+        </div>
+
+        <div class="controls">
+            <h3>Message Management</h3>
+            <input type="text" id="messageId" placeholder="Message ID" value="test-message-123">
+            <button onclick="updateMessage()">Update Message</button>
+            <button onclick="deleteMessage()">Delete Message</button>
+        </div>
+
+        <div class="controls">
+            <h3>Messages</h3>
+            <div id="messages"></div>
+        </div>
+
+        <div class="controls">
+            <h3>Event Log</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let currentRequestId = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.innerHTML = '✅ Connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.innerHTML = '❌ Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+
+        function connect() {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io('http://localhost:3001', {
+                path: '/api/socketio',
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                log('Connected to WebSocket server');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                log('Disconnected from WebSocket server');
+                updateStatus(false);
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`Connection error: ${error.message}`);
+                updateStatus(false);
+            });
+
+            socket.on('newMessage', (data) => {
+                log(`Received newMessage: ${JSON.stringify(data)}`);
+                addMessage(data);
+            });
+
+            socket.on('messageUpdated', (data) => {
+                log(`Received messageUpdated: ${JSON.stringify(data)}`);
+            });
+
+            socket.on('messageDeleted', (data) => {
+                log(`Received messageDeleted: ${JSON.stringify(data)}`);
+            });
+
+            socket.on('requestUpdated', (data) => {
+                log(`Received requestUpdated: ${JSON.stringify(data)}`);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function joinRoom() {
+            if (!isConnected) {
+                alert('Please connect first');
+                return;
+            }
+            
+            const requestId = document.getElementById('requestId').value;
+            if (!requestId) {
+                alert('Please enter a request ID');
+                return;
+            }
+            
+            currentRequestId = requestId;
+            socket.emit('joinRequest', { requestId });
+            log(`Joined room: ${requestId}`);
+        }
+
+        function leaveRoom() {
+            if (!isConnected || !currentRequestId) {
+                alert('Not in any room');
+                return;
+            }
+            
+            socket.emit('leaveRequest', { requestId: currentRequestId });
+            log(`Left room: ${currentRequestId}`);
+            currentRequestId = null;
+        }
+
+        function sendMessage() {
+            if (!isConnected || !currentRequestId) {
+                alert('Please connect and join a room first');
+                return;
+            }
+            
+            const action = document.getElementById('action').value;
+            const description = document.getElementById('description').value;
+            
+            if (!action || !description) {
+                alert('Please fill in action and description');
+                return;
+            }
+            
+            const message = {
+                requestId: currentRequestId,
+                action,
+                description,
+                entity_type: 'message',
+                metadata: {
+                    user_id: 'browser-test-user',
+                    user_name: 'Browser Test User',
+                    user_role: 'admin'
+                }
+            };
+            
+            socket.emit('sendMessage', message);
+            log(`Sent message: ${JSON.stringify(message)}`);
+        }
+
+        function updateMessage() {
+            if (!isConnected || !currentRequestId) {
+                alert('Please connect and join a room first');
+                return;
+            }
+            
+            const messageId = document.getElementById('messageId').value;
+            const description = document.getElementById('description').value;
+            
+            if (!messageId) {
+                alert('Please enter a message ID');
+                return;
+            }
+            
+            socket.emit('updateMessage', {
+                requestId: currentRequestId,
+                messageId,
+                description: description || 'Updated message'
+            });
+            log(`Updated message: ${messageId}`);
+        }
+
+        function deleteMessage() {
+            if (!isConnected || !currentRequestId) {
+                alert('Please connect and join a room first');
+                return;
+            }
+            
+            const messageId = document.getElementById('messageId').value;
+            
+            if (!messageId) {
+                alert('Please enter a message ID');
+                return;
+            }
+            
+            socket.emit('deleteMessage', {
+                requestId: currentRequestId,
+                messageId
+            });
+            log(`Deleted message: ${messageId}`);
+        }
+
+        function addMessage(data) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `
+                <strong>${data.action}</strong><br>
+                ${data.description}<br>
+                <small>ID: ${data.id} | Time: ${new Date(data.created_at).toLocaleString()}</small>
+            `;
+            messagesDiv.appendChild(messageDiv);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            log('Page loaded. Click Connect to start testing.');
+        };
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { ClientToServerEvents, ServerToClientEvents } from '@/lib/websocket'
+import { getWebSocketUrl, WEBSOCKET_CONFIG } from '@/lib/config/websocket'
 
 export interface WebSocketMessage {
   id: string
@@ -64,12 +65,9 @@ export const useWebSocket = (
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io(process.env.NODE_ENV === 'production' 
-      ? process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      : 'http://localhost:3000', {
-      path: '/api/socketio',
-      transports: ['websocket', 'polling']
-    })
+    const websocketUrl = getWebSocketUrl()
+    
+    const newSocket = io(websocketUrl, WEBSOCKET_CONFIG)
 
     socketRef.current = newSocket
     setSocket(newSocket)
