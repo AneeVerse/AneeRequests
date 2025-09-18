@@ -47,14 +47,33 @@ export default function CreateInvoicePage() {
       line_total: 0
     }
   ])
+  const [currencyUpdateKey, setCurrencyUpdateKey] = useState(0)
   
   // Calculations
   const subtotal = lineItems.reduce((sum, item) => sum + item.line_total, 0)
   const total = subtotal
 
+  // Currency formatting function
+  const formatCurrency = (amount: number) => {
+    const locale = currency === 'INR' ? 'en-IN' : 
+                   currency === 'EUR' ? 'en-EU' : 
+                   currency === 'GBP' ? 'en-GB' : 
+                   currency === 'JPY' ? 'ja-JP' : 'en-US'
+    
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency || 'USD'
+    }).format(amount)
+  }
+
   useEffect(() => {
     loadData()
   }, [])
+
+  // Force re-render when currency changes to update formatting
+  useEffect(() => {
+    setCurrencyUpdateKey(prev => prev + 1)
+  }, [currency])
 
   const loadData = async () => {
     try {
@@ -322,7 +341,7 @@ export default function CreateInvoicePage() {
               {/* Line Items */}
               <div className="border-l border-r border-gray-200">
                 {lineItems.map((item) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200">
+                  <div key={`${item.id}-${currencyUpdateKey}`} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200">
                     <div className="col-span-6">
                       {/* Free-text service description only */}
                       <input
@@ -364,10 +383,7 @@ export default function CreateInvoicePage() {
                     </div>
                     <div className="col-span-2">
                       <div className="px-3 py-2 text-gray-900 font-medium">
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: currency || 'USD'
-                        }).format(item.line_total)}
+                        {formatCurrency(item.line_total)}
                       </div>
                     </div>
                   </div>
@@ -388,20 +404,14 @@ export default function CreateInvoicePage() {
               {/* Totals */}
               <div className="border-l border-r border-b border-gray-200 rounded-b-md">
                 <div className="flex justify-end px-4 py-4">
-                  <div className="w-64 space-y-2">
+                  <div key={`totals-${currencyUpdateKey}`} className="w-64 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Subtotal</span>
-                      <span className="text-gray-900">{new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: currency || 'USD'
-                      }).format(subtotal)}</span>
+                      <span className="text-gray-900">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-base font-medium border-t pt-2">
                       <span className="text-gray-900">Total</span>
-                      <span className="text-gray-900">{new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: currency || 'USD'
-                      }).format(total)}</span>
+                      <span className="text-gray-900">{formatCurrency(total)}</span>
                     </div>
                   </div>
                 </div>

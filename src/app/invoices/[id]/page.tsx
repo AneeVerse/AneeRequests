@@ -6,6 +6,8 @@ import Link from "next/link"
 import { useAuth } from "@/lib/contexts/AuthContext"
 import RouteGuard from "@/components/RouteGuard"
 import PermissionGate from "@/components/PermissionGate"
+import { useToast } from "@/components/Toast"
+import ConfirmationModal from "@/components/ConfirmationModal"
 
 interface Client {
   id: string
@@ -46,9 +48,13 @@ export default function InvoiceDetailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
+  const { addToast, ToastContainer } = useToast()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [showSendConfirm, setShowSendConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const loadInvoice = useCallback(async () => {
     try {
@@ -85,9 +91,15 @@ export default function InvoiceDetailPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    const currency = invoice?.currency || 'USD'
+    const locale = currency === 'INR' ? 'en-IN' : 
+                   currency === 'EUR' ? 'en-EU' : 
+                   currency === 'GBP' ? 'en-GB' : 
+                   currency === 'JPY' ? 'ja-JP' : 'en-US'
+    
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: invoice?.currency || 'USD'
+      currency: currency
     }).format(amount)
   }
 
@@ -123,17 +135,23 @@ export default function InvoiceDetailPage() {
       }
 
       setInvoice(prev => prev ? { ...prev, status: 'paid' } : null)
+      addToast('Invoice marked as paid successfully!', 'success')
     } catch (err) {
       console.error('Error updating invoice:', err)
-      alert('Failed to update invoice')
+      addToast('Failed to update invoice', 'error')
     }
   }
 
-  const handleDeleteInvoice = async () => {
-    if (!invoice || !confirm('Are you sure you want to delete this invoice?')) {
-      return
-    }
+  const handleDeleteInvoice = () => {
+    if (!invoice) return
+    setShowDeleteConfirm(true)
+  }
 
+  const confirmDeleteInvoice = async () => {
+    if (!invoice) return
+
+    setShowDeleteConfirm(false)
+    
     try {
       const response = await fetch(`/api/invoices/${invoice.id}`, {
         method: 'DELETE',
@@ -143,10 +161,53 @@ export default function InvoiceDetailPage() {
         throw new Error('Failed to delete invoice')
       }
 
+      addToast('Invoice deleted successfully!', 'success')
       router.push('/invoices')
     } catch (err) {
       console.error('Error deleting invoice:', err)
-      alert('Failed to delete invoice')
+      addToast('Failed to delete invoice', 'error')
+    }
+  }
+
+  const handleSendInvoice = () => {
+    if (!invoice) return
+
+    if (!invoice.client?.email) {
+      addToast('Client email not found. Cannot send invoice.', 'error')
+      return
+    }
+
+    setShowSendConfirm(true)
+  }
+
+  const confirmSendInvoice = async () => {
+    if (!invoice) return
+
+    setSending(true)
+    setShowSendConfirm(false)
+    
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send invoice')
+      }
+
+      // Update invoice status to sent
+      setInvoice(prev => prev ? { ...prev, status: 'sent' } : null)
+      addToast('Invoice sent successfully!', 'success')
+    } catch (err) {
+      console.error('Error sending invoice:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send invoice'
+      addToast(`Error: ${errorMessage}`, 'error')
+    } finally {
+      setSending(false)
     }
   }
 
@@ -467,6 +528,32 @@ export default function InvoiceDetailPage() {
   return (
     <RouteGuard requireAnyPermission={['view_invoices', 'edit_invoices', 'delete_invoices']}>
       <div className="min-h-screen bg-gray-50">
+        <ToastContainer />
+        
+        {/* Send Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showSendConfirm}
+          onClose={() => setShowSendConfirm(false)}
+          onConfirm={confirmSendInvoice}
+          title="Send Invoice"
+          message={`Are you sure you want to send invoice ${invoice?.invoice_number} to ${invoice?.client?.email}?`}
+          confirmText="Send Invoice"
+          cancelText="Cancel"
+          type="info"
+          isLoading={sending}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={confirmDeleteInvoice}
+          title="Delete Invoice"
+          message={`Are you sure you want to delete invoice ${invoice?.invoice_number}? This action cannot be undone.`}
+          confirmText="Delete Invoice"
+          cancelText="Cancel"
+          type="danger"
+        />
         {/* Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -513,9 +600,13 @@ export default function InvoiceDetailPage() {
                     <Download size={14} />
                     Download
                   </button>
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all">
+                  <button 
+                    onClick={handleSendInvoice}
+                    disabled={sending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <Mail size={14} />
-                    Send
+                    {sending ? 'Sending...' : 'Send'}
                   </button>
                   <PermissionGate permission="edit_invoices">
                     {invoice.status !== 'paid' && (
@@ -584,6 +675,10 @@ export default function InvoiceDetailPage() {
                           <p className="text-sm text-gray-900">{invoice.payment_reference}</p>
                         </div>
                       )}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Currency</label>
+                        <p className="text-sm text-gray-900">{invoice.currency || 'USD'}</p>
+                      </div>
                     </div>
                   </div>
                 </div>

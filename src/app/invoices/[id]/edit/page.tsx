@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation"
 import { ChevronDown, Plus, Trash2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import RouteGuard from "@/components/RouteGuard"
+import { useToast } from "@/components/Toast"
 
 interface Client {
   id: string
@@ -43,6 +44,7 @@ interface Invoice {
 export default function EditInvoicePage() {
   const params = useParams()
   const router = useRouter()
+  const { addToast, ToastContainer } = useToast()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -58,14 +60,33 @@ export default function EditInvoicePage() {
   
   // Line items
   const [lineItems, setLineItems] = useState<LineItem[]>([])
+  const [currencyUpdateKey, setCurrencyUpdateKey] = useState(0)
   
   // Calculations
   const subtotal = lineItems.reduce((sum, item) => sum + item.line_total, 0)
   const total = subtotal
 
+  // Currency formatting function
+  const formatCurrency = (amount: number) => {
+    const locale = currency === 'INR' ? 'en-IN' : 
+                   currency === 'EUR' ? 'en-EU' : 
+                   currency === 'GBP' ? 'en-GB' : 
+                   currency === 'JPY' ? 'ja-JP' : 'en-US'
+    
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency || 'USD'
+    }).format(amount)
+  }
+
   useEffect(() => {
     loadData()
   }, [])
+
+  // Force re-render when currency changes to update formatting
+  useEffect(() => {
+    setCurrencyUpdateKey(prev => prev + 1)
+  }, [currency])
 
   const loadData = async () => {
     try {
@@ -82,7 +103,8 @@ export default function EditInvoicePage() {
 
       if (invoiceResponse.ok) {
         const invoiceData = await invoiceResponse.json()
-        setSelectedClient(invoiceData.client_id)
+        // Use client.id instead of client_id since the API now returns client object
+        setSelectedClient(invoiceData.client?.id || invoiceData.client_id || "")
         setDateOfIssue(invoiceData.date_of_issue)
         setDueDate(invoiceData.due_date || "")
         setPaymentMethod(invoiceData.payment_method || "")
@@ -145,12 +167,12 @@ export default function EditInvoicePage() {
 
   const handleSubmit = async (status: 'draft' | 'sent') => {
     if (!selectedClient) {
-      alert('Please select a client')
+      addToast('Please select a client', 'error')
       return
     }
 
     if (lineItems.length === 0) {
-      alert('Please add at least one line item')
+      addToast('Please add at least one line item', 'error')
       return
     }
 
@@ -160,7 +182,7 @@ export default function EditInvoicePage() {
     )
     
     if (invalidItems.length > 0) {
-      alert('Please complete all line items with valid description, rate, and quantity')
+      addToast('Please complete all line items with valid description, rate, and quantity', 'error')
       return
     }
 
@@ -194,11 +216,12 @@ export default function EditInvoicePage() {
         throw new Error(errorData.details || errorData.error || 'Failed to update invoice')
       }
       
+      addToast('Invoice updated successfully!', 'success')
       router.push(`/invoices/${params.id}`)
     } catch (err) {
       console.error('Error updating invoice:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to update invoice'
-      alert(`Error: ${errorMessage}`)
+      addToast(`Error: ${errorMessage}`, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -215,6 +238,7 @@ export default function EditInvoicePage() {
   return (
     <RouteGuard requirePermission="edit_invoices">
       <div className="flex flex-col h-full">
+        <ToastContainer />
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
@@ -342,7 +366,7 @@ export default function EditInvoicePage() {
               {/* Line Items */}
               <div className="border-l border-r border-gray-200">
                 {lineItems.map((item) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200">
+                  <div key={`${item.id}-${currencyUpdateKey}`} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-gray-200">
                     <div className="col-span-6">
                       <input
                         type="text"
@@ -383,10 +407,7 @@ export default function EditInvoicePage() {
                     </div>
                     <div className="col-span-2">
                       <div className="px-3 py-2 text-gray-900 font-medium">
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: currency || 'USD'
-                        }).format(item.line_total)}
+                        {formatCurrency(item.line_total)}
                       </div>
                     </div>
                   </div>
@@ -407,20 +428,14 @@ export default function EditInvoicePage() {
               {/* Totals */}
               <div className="border-l border-r border-b border-gray-200 rounded-b-md">
                 <div className="flex justify-end px-4 py-4">
-                  <div className="w-64 space-y-2">
+                  <div key={`totals-${currencyUpdateKey}`} className="w-64 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Subtotal</span>
-                      <span className="text-gray-900">{new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: currency || 'USD'
-                      }).format(subtotal)}</span>
+                      <span className="text-gray-900">{formatCurrency(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-base font-medium border-t pt-2">
                       <span className="text-gray-900">Total</span>
-                      <span className="text-gray-900">{new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: currency || 'USD'
-                      }).format(total)}</span>
+                      <span className="text-gray-900">{formatCurrency(total)}</span>
                     </div>
                   </div>
                 </div>

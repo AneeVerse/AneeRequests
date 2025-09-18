@@ -24,6 +24,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
+
     // Map the populated client data to the expected structure
     const clientData = invoice.client_id as Record<string, unknown> | undefined
     const mappedInvoice = {
