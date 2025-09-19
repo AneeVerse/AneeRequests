@@ -56,7 +56,8 @@ export async function PATCH(
 
     // Broadcast to WebSocket server for real-time updates
     try {
-      await fetch('http://localhost:3001/api/broadcast', {
+      const websocketUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:3001'
+      await fetch(`${websocketUrl}/api/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,7 +106,8 @@ export async function DELETE(
 
     // Broadcast to WebSocket server for real-time updates
     try {
-      await fetch('http://localhost:3001/api/broadcast', {
+      const websocketUrl = process.env.WEBSOCKET_SERVER_URL || 'http://localhost:3001'
+      await fetch(`${websocketUrl}/api/broadcast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

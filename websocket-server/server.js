@@ -28,9 +28,10 @@ const io = new Server(httpServer, {
   path: '/api/socketio',
   addTrailingSlash: false,
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+    origin: process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) || [
       process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://app.aneeverse.com'
     ],
     methods: ['GET', 'POST'],
     credentials: true

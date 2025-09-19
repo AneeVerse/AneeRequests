@@ -4,9 +4,9 @@
  */
 
 export const getWebSocketUrl = (): string => {
-  // In production, use the Railway WebSocket server URL
+  // In production, use the Render WebSocket server URL
   if (process.env.NODE_ENV === 'production') {
-    return process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'https://your-railway-app.railway.app'
+    return process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'https://websocket-server-in62.onrender.com'
   }
   
   // In development, use local WebSocket server
