@@ -54,7 +54,7 @@ export default function CreateRequestPage() {
       setSelectedClient(clientId)
       setStep(2)
     }
-  }, [user?.role, (user as ClientUser)?.clientId])
+  }, [user])
 
   const loadInitialData = useCallback(async () => {
     try {

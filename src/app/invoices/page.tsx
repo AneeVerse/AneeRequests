@@ -578,14 +578,29 @@ export default function InvoicesPage() {
                       </PermissionGate>
                       <button
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => {
+                        onClick={async () => {
                           setOpenMenuId(null)
-                          // Navigate to detail page with auto-download flag
-                          window.location.href = `/invoices/${invoice.id}?download=1`
+                          try {
+                            const response = await fetch(`/api/invoices/${invoice.id}/download`)
+                            if (!response.ok) throw new Error('Failed to download PDF')
+                            const blob = await response.blob()
+                            const url = URL.createObjectURL(blob)
+                            const link = document.createElement('a')
+                            link.href = url
+                            link.download = `invoice-${invoice.invoice_number}.pdf`
+                            document.body.appendChild(link)
+                            link.click()
+                            link.remove()
+                            URL.revokeObjectURL(url)
+                          } catch (error) {
+                            console.error('Error downloading PDF:', error)
+                            // Fallback to detail page with auto-download
+                            window.location.href = `/invoices/${invoice.id}?download=1`
+                          }
                         }}
                       >
                         <Download size={16} />
-                        Download
+                        Download PDF
                       </button>
                       <PermissionGate permission="edit_invoices">
                         {invoice.status !== 'paid' && (

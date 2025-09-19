@@ -476,18 +476,39 @@ export default function InvoiceDetailPage() {
     </html>`
   }
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!invoice) return
-    const html = buildPrintableHtml(invoice)
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `invoice-${invoice.invoice_number}.html`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
+    
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}/download`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to download PDF')
+      }
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-${invoice.invoice_number}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+      // Fallback to HTML download if PDF fails
+      const html = buildPrintableHtml(invoice)
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-${invoice.invoice_number}.html`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    }
   }, [invoice])
 
   // Auto-download when navigated with ?download=1
