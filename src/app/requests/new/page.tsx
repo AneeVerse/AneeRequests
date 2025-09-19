@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronDown } from "lucide-react"
 import { useAuth } from "@/lib/contexts/AuthContext"
+import { ClientUser } from "@/lib/types/auth"
 import SimpleTextEditor from "@/components/SimpleTextEditor"
 
 interface Client {
@@ -40,8 +41,8 @@ export default function CreateRequestPage() {
     const clientId = urlParams.get('client_id')
 
     if (user?.role === 'client') {
-      // For clients, use their own ID and go directly to step 2
-      let actualClientId = user.id
+      // For clients, use their clientId (not user.id) and go directly to step 2
+      let actualClientId = (user as ClientUser).clientId
       // Handle impersonated client IDs (remove "impersonated-" prefix)
       if (actualClientId && actualClientId.startsWith('impersonated-')) {
         actualClientId = actualClientId.replace('impersonated-', '')
@@ -53,7 +54,7 @@ export default function CreateRequestPage() {
       setSelectedClient(clientId)
       setStep(2)
     }
-  }, [user?.role, user?.id])
+  }, [user?.role, (user as ClientUser)?.clientId])
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -128,8 +129,8 @@ export default function CreateRequestPage() {
       return
     }
 
-    // For clients, use their own ID as client_id
-    let clientId = user?.role === 'client' ? user.id : selectedClient
+    // For clients, use their clientId (not user.id)
+    let clientId = user?.role === 'client' ? (user as ClientUser).clientId : selectedClient
 
     // Handle impersonated client IDs (remove "impersonated-" prefix)
     if (clientId && clientId.startsWith('impersonated-')) {
@@ -197,7 +198,7 @@ export default function CreateRequestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-primary-600 flex items-center justify-center p-8">
+    <div className="min-h-screen bg-primary-600 flex items-center justify-center p-4 sm:p-8">
       <div className="w-full max-w-2xl">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center mb-8">
@@ -215,7 +216,7 @@ export default function CreateRequestPage() {
         </div>
 
         {/* Main Content Card */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-white rounded-lg shadow-xl p-4 sm:p-8">
           <h1 className="text-2xl font-semibold text-gray-900 text-center mb-8">Create Request</h1>
 
           {/* Step 1: Client Selection (Admin only) */}
@@ -234,7 +235,7 @@ export default function CreateRequestPage() {
                         <select
                           value={selectedClient}
                           onChange={(e) => handleClientSelect(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white text-gray-900"
+                          className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white text-gray-900 text-base"
                         >
                           <option value="">Select a client...</option>
                           {clients.map((client) => (
@@ -243,7 +244,7 @@ export default function CreateRequestPage() {
                             </option>
                           ))}
                         </select>
-                        <ChevronDown size={16} className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" />
+                        <ChevronDown size={16} className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" />
                       </div>
 
                       {clients.length === 0 && (
@@ -282,7 +283,7 @@ export default function CreateRequestPage() {
                           placeholder="Client name *"
                           value={newClientData.name}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                         />
                       </div>
 
@@ -292,7 +293,7 @@ export default function CreateRequestPage() {
                           placeholder="Email (optional)"
                           value={newClientData.email}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                         />
                       </div>
 
@@ -302,7 +303,7 @@ export default function CreateRequestPage() {
                           placeholder="Company name (optional)"
                           value={newClientData.client_company_name}
                           onChange={(e) => setNewClientData(prev => ({ ...prev, client_company_name: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                          className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                         />
                       </div>
 
@@ -345,7 +346,7 @@ export default function CreateRequestPage() {
           )}
 
           {/* Step 2: Title and Description (or Step 1 for clients) */}
-          {(step === 2 || (user?.role === 'client' && step === 1)) && (
+          {(step === 2 || (user?.role === 'client' && step === 1) || (user?.role === 'admin' && step === 1 && selectedClient)) && (
             <div>
               <div className="mb-6">
                 <div className="mb-4">
@@ -356,7 +357,7 @@ export default function CreateRequestPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                     placeholder="Enter request title"
                   />
                 </div>
@@ -383,7 +384,7 @@ export default function CreateRequestPage() {
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                   >
                     <option value="none">No Priority</option>
                     <option value="low">Low</option>

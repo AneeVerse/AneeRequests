@@ -29,7 +29,12 @@ export async function GET(
       id: String(requestData._id),
       client: requestData.client_id ? {
         ...(requestData.client_id as Record<string, unknown>),
-        id: String((requestData.client_id as { _id: unknown })._id)
+        id: String((requestData.client_id as { _id: unknown })._id),
+        name: (requestData.client_id as Record<string, unknown>).name,
+        email: (requestData.client_id as Record<string, unknown>).email,
+        client_company: (requestData.client_id as Record<string, unknown>).client_company_name ? {
+          name: (requestData.client_id as Record<string, unknown>).client_company_name as string
+        } : undefined
       } : undefined
     }
 
